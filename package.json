@@ -1,0 +1,19 @@
+{
+  "name": "conep-monitoramento",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": ["frontend"],
+  "scripts": {
+    "dev": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace frontend",
+    "lint": "npm run typecheck --workspace frontend && deno check supabase/functions/receber-tensao/index.ts",
+    "test": "deno test supabase/functions/receber-tensao/handler.test.ts",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "deno": "2.7.4",
+    "supabase": "2.117.0"
+  }
+}
