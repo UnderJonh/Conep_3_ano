@@ -12,11 +12,9 @@ const supabase = createClient(url, serviceKey, {
 });
 
 Deno.serve(criarHandler(async (leitura, tokenHash) => {
-  const { data, error } = await supabase.rpc('registrar_tensao', {
-    p_teste_id: leitura.teste_id,
-    p_player: leitura.player,
-    p_tensao: leitura.tensao,
-    p_token_hash: tokenHash,
-  });
+  const base = { p_teste_id: leitura.teste_id, p_player: leitura.player, p_token_hash: tokenHash };
+  const { data, error } = leitura.amostras
+    ? await supabase.rpc('registrar_amostras', { ...base, p_amostras: leitura.amostras })
+    : await supabase.rpc('registrar_tensao', { ...base, p_tensao: leitura.tensao });
   return { data: data as Registro | null, error };
 }));

@@ -33,8 +33,20 @@ Deno.test('nega token ausente e nunca consulta banco em payload inválido', asyn
   const handler = criarHandler(() => { throw new Error('Não deveria chamar o banco'); });
   equal((await handler(request(leitura, ''))).status, 401);
   equal((await handler(request({ ...leitura, player: 9 }))).status, 400);
-  equal((await handler(request({ ...leitura, teste_id: 'a'.repeat(1200) }))).status, 413);
+  equal((await handler(request({ ...leitura, teste_id: 'a'.repeat(5000) }))).status, 413);
   equal((await handler(new Request('http://localhost', { method: 'POST', headers: { 'x-device-token': 'a'.repeat(64), 'content-type': 'application/json' }, body: '{' }))).status, 400);
+});
+
+Deno.test('aceita lotes ordenados e rejeita replay dentro do lote, tensão fora da faixa e formatos misturados', () => {
+  const base = { teste_id: leitura.teste_id, player: 1 };
+  const samples = [{ tensao: 0, instante_ms: 1700000000000 }, { tensao: 2.8, instante_ms: 1700000000020 }];
+  equal(validarLeitura({ ...base, amostras: samples }), true);
+  for (const amostras of [[], samples.toReversed(), [samples[0], samples[0]], [{ ...samples[0], tensao: 9 }],
+    [{ ...samples[0], instante_ms: 1.2 }], Array.from({ length: 51 }, (_, i) => ({ tensao: 1, instante_ms: 1700000000000 + i }))]) {
+    equal(validarLeitura({ ...base, amostras }), false);
+  }
+  equal(validarLeitura({ ...leitura, amostras: samples }), false);
+  equal(validarLeitura({ ...leitura, tensao: 3.61 }), false);
 });
 Deno.test('propaga erros esperados e oculta detalhes internos', async () => {
   for (const code of ['PT400', 'PT401', 'PT403', 'PT404', 'PT409', 'XX000']) {

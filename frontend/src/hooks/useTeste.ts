@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Rodada, Teste } from '../lib/database';
 import { client, errorMessage } from '../lib/supabase';
@@ -11,6 +11,7 @@ export function useTeste(id: string) {
   const [historyError, setHistoryError] = useState('');
   const [connection, setConnection] = useState('Conectando...');
   const [attempt, setAttempt] = useState(0);
+  const acceptServerState = useRef<((value: Teste) => void) | null>(null);
 
   useEffect(() => {
     const db = client();
@@ -42,6 +43,7 @@ export function useTeste(id: string) {
         void history();
       }
     }
+    acceptServerState.current = accept;
     async function snapshot() {
       const request = ++stateRequest;
       const { data, error: err } = await db.from('testes').select('*').eq('id', id).maybeSingle();
@@ -83,11 +85,13 @@ export function useTeste(id: string) {
     void connect();
     return () => {
       alive = false;
+      acceptServerState.current = null;
       document.removeEventListener('visibilitychange', resync);
       window.removeEventListener('online', resync);
       if (channel) void db.removeChannel(channel);
     };
   }, [id, attempt]);
 
-  return { teste, rodadas, loading, error, historyError, connection, retry: () => setAttempt((n) => n + 1) };
+  return { teste, rodadas, loading, error, historyError, connection, retry: () => setAttempt((n) => n + 1),
+    applyServerState: (value: Teste) => acceptServerState.current?.(value) };
 }

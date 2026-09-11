@@ -5,6 +5,7 @@ import { isUuid } from './lib/format';
 import { AuthForm } from './components/AuthForm';
 import { TestList } from './components/TestList';
 import { TestMonitor } from './components/TestMonitor';
+import { Leaderboard } from './components/Leaderboard';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -34,13 +35,14 @@ export default function App() {
   const match = path.match(/^\/testes\/([^/]+)\/?$/);
   return <>
     <header className="site-header"><div className="header-inner">
-      <a href="/" className="brand" onClick={(e) => { e.preventDefault(); navigate('/'); }} aria-label="CONEP início">CONEP <svg aria-hidden="true" viewBox="0 0 36 36"><path d="M2 19h10l4-14 6 27 5-13h7" /></svg></a>
-      <span className="app-name">Monitor de tensão</span>
-      {session ? <button className="text-button logout" onClick={() => void logout()}>Sair</button> : null}
+      <a href="/" className="brand" onClick={(e) => { e.preventDefault(); navigate('/'); }} aria-label="Voltage Run início"><span>VOLTAGE</span><em>RUN</em><b>ϟ</b></a>
+      <span className="app-name">ARENA CONEP</span>
+      <nav className="header-nav" aria-label="Principal"><a href="/" onClick={e => { e.preventDefault(); navigate('/'); }}>Corridas</a><a href="/ranking" onClick={e => { e.preventDefault(); navigate('/ranking'); }}>Ranking mundial</a>{session ? <button className="text-button logout" onClick={() => void logout()}>Sair</button> : <a href="/" onClick={e => { e.preventDefault(); navigate('/'); }}>Entrar</a>}</nav>
     </div></header>
     {authError ? <p role="alert" className="error container">{authError}</p> : null}
     {configError ? <main className="container surface error-state"><h1>Conecte o seu Supabase</h1><p>{configError}</p><p>Consulte o README para a configuração inicial.</p></main>
-      : loading ? <main className="container" role="status">Preparando seu painel...</main>
+      : path === '/ranking' ? <main className="container ranking-page"><div className="page-title"><div><span className="eyebrow">VOLTAGE RUN · CLASSIFICAÇÃO GLOBAL</span><h1>Os nomes que foram mais longe.</h1><p className="muted">Cada recorde começa com uma pisada. Este pode ser o seu lugar.</p></div></div><Leaderboard navigate={navigate} /></main>
+      : loading ? <main className="container" role="status">Preparando sua arena...</main>
       : !session ? <AuthForm />
       : path === '/' ? <TestList key={session.user.id} navigate={navigate} />
       : match && isUuid(match[1]) ? <TestMonitor key={`${session.user.id}:${match[1]}`} id={match[1]} userId={session.user.id} navigate={navigate} />

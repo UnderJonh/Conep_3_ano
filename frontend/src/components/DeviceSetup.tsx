@@ -25,7 +25,7 @@ export function DeviceSetup({ id }: { id: string }) {
     catch { setMessage('Não foi possível copiar automaticamente. Selecione e copie o texto.'); }
   }
   return <details className="surface device-setup">
-    <summary>Configurar dispositivos</summary>
+    <summary>⚙ Configurar ESP32</summary>
     <div className="setup-content">
       <p>Use um token próprio para cada ESP32. Gerar outro token substitui imediatamente o anterior.</p>
       <label>TESTE_ID<div className="copy-row"><input readOnly value={id} /><button className="secondary" onClick={() => void copy(id)}>Copiar UUID</button></div></label>

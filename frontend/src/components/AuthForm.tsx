@@ -17,8 +17,9 @@ export function AuthForm() {
     finally { setBusy(false); }
   }
   return <main className="auth-layout"><section className="surface auth-form">
-    <h1>Acompanhe seu teste</h1>
-    <p className="muted">Entre para visualizar as leituras dos jogadores e gerenciar suas rodadas.</p>
+    <span className="eyebrow">CADA PISADA CONTA</span>
+    <h1>Sua energia.<br />Sua próxima vitória.</h1>
+    <p className="muted">Entre na arena, conecte os sensores ou pratique no teclado. A próxima corrida começa com você.</p>
     <form onSubmit={(event) => void submit(event)}>
       <label>E-mail<input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" /></label>
       <label>Senha<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua senha" /></label>

@@ -33,18 +33,18 @@ export function TestList({ navigate }: { navigate: (path: string) => void }) {
     finally { setBusy(false); }
   }
   return <main className="container">
-    <div className="page-title"><div><h1>Meus testes</h1><p className="muted">Do primeiro sinal à última rodada.</p></div></div>
+    <div className="page-title"><div><span className="eyebrow">SUAS CORRIDAS</span><h1>Escolha sua arena.</h1><p className="muted">Pise mais forte. Encontre seu ritmo. Vá mais longe.</p></div></div>
     <form className="surface create-form" onSubmit={(e) => void create(e)}>
-      <label>Nome do novo teste<input required maxLength={120} placeholder="Ex.: Teste 01" value={name} onChange={(e) => setName(e.target.value)} /></label>
-      <button disabled={busy || !name.trim()}>{busy ? 'Criando...' : 'Criar teste'}</button>
+      <label>Nome da arena<input required maxLength={120} placeholder="Ex.: Arena CONEP" value={name} onChange={(e) => setName(e.target.value)} /></label>
+      <button disabled={busy || !name.trim()}>{busy ? 'Criando...' : 'Criar arena'}</button>
     </form>
     {error ? <div className="error" role="alert">{error} <button className="text-button" onClick={() => setAttempt((n) => n + 1)}>Tentar novamente</button></div> : null}
-    {loading ? <p role="status">Carregando testes...</p> : testes.length ?
+    {loading ? <p role="status">Carregando arenas...</p> : testes.length ?
       <section className="surface test-list" aria-label="Testes disponíveis">{testes.map((t) =>
         <a href={`/testes/${t.id}`} key={t.id} onClick={(e) => { if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); navigate(`/testes/${t.id}`); } }}>
           <div><h2>{t.nome}</h2><span className="small muted">Criado em {time(t.created_at, true)}</span></div>
           <span>Rodada {t.rodada_atual}</span><span className={`status ${t.status}`}>{statusLabel[t.status]}</span><span aria-hidden="true">→</span>
-        </a>)}</section> : !error ? <section className="empty-state"><h2>Seu próximo teste começa aqui.</h2><p className="muted">Crie um teste, conecte os dois jogadores e acompanhe as leituras.</p></section> : null}
-    <p className="small muted">São exibidos os últimos 100 testes aos quais sua conta tem acesso.</p>
+        </a>)}</section> : !error ? <section className="empty-state"><h2>Sua primeira corrida começa aqui.</h2><p className="muted">Crie uma arena e prepare os dois jogadores.</p></section> : null}
+    <p className="small muted">São exibidas as últimas 100 arenas às quais sua conta tem acesso.</p>
   </main>;
 }
