@@ -5,24 +5,26 @@ import { tmpdir } from 'node:os';
 import { mkdirSync } from 'node:fs';
 
 test('corrida oficial real → vencedor → ranking público → treino → reconexão', async ({ page, context, browser }) => {
-  test.skip(!process.env.E2E_EMAIL || !process.env.E2E_PASSWORD, 'Configure conta dedicada: E2E_EMAIL e E2E_PASSWORD.');
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   const screenshots = process.env.E2E_SCREENSHOTS ?? join(tmpdir(), 'conep-game-qa');
   mkdirSync(screenshots, { recursive: true });
   await page.goto('/');
   await expect(page).toHaveTitle('Voltage Run · Arena CONEP');
-  await page.getByLabel('E-mail', { exact: true }).fill(process.env.E2E_EMAIL!);
-  await page.getByLabel('Senha', { exact: true }).fill(process.env.E2E_PASSWORD!);
-  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Escolha sua arena.' })).toBeVisible();
+  await expect(page.getByLabel('E-mail')).toHaveCount(0);
+  const storedSession = await page.evaluate(() => {
+    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('sb-') && key.endsWith('-auth-token'));
+    if (!entry) throw new Error('Sessão anônima não encontrada.');
+    return JSON.parse(entry[1]) as { access_token: string; refresh_token: string };
+  });
+  const db = createClient(process.env.VITE_SUPABASE_URL!, process.env.VITE_SUPABASE_PUBLISHABLE_KEY!);
+  const attached = await db.auth.setSession(storedSession);
+  expect(attached.error).toBeNull();
   await page.getByLabel('Nome da arena').fill('Arena CONEP · validação');
   await page.getByRole('button', { name: 'Criar arena', exact: true }).click();
   await expect(page).toHaveURL(/\/testes\/[0-9a-f-]{36}$/);
   const id = page.url().split('/').at(-1)!;
-  const db = createClient(process.env.VITE_SUPABASE_URL!, process.env.VITE_SUPABASE_PUBLISHABLE_KEY!);
-  const login = await db.auth.signInWithPassword({ email: process.env.E2E_EMAIL!, password: process.env.E2E_PASSWORD! });
-  expect(login.error).toBeNull();
   const anonymous = await browser.newContext();
   try {
     await expect(page.getByText('Conectado ao tempo real', { exact: true })).toBeVisible();
@@ -126,8 +128,8 @@ test('corrida oficial real → vencedor → ranking público → treino → reco
     await expect(page.getByText('Conectado ao tempo real', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Corrida interrompida' })).toBeVisible();
     expect(errors).toEqual([]);
-    await page.getByRole('button', { name: 'Sair', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Entrar', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sair' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Entrar' })).toHaveCount(0);
   } finally {
     await context.setOffline(false);
     await db.auth.signOut();

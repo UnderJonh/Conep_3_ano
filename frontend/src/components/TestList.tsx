@@ -45,6 +45,6 @@ export function TestList({ navigate }: { navigate: (path: string) => void }) {
           <div><h2>{t.nome}</h2><span className="small muted">Criado em {time(t.created_at, true)}</span></div>
           <span>Rodada {t.rodada_atual}</span><span className={`status ${t.status}`}>{statusLabel[t.status]}</span><span aria-hidden="true">→</span>
         </a>)}</section> : !error ? <section className="empty-state"><h2>Sua primeira corrida começa aqui.</h2><p className="muted">Crie uma arena e prepare os dois jogadores.</p></section> : null}
-    <p className="small muted">São exibidas as últimas 100 arenas às quais sua conta tem acesso.</p>
+    <p className="small muted">São exibidas as últimas 100 arenas criadas neste navegador.</p>
   </main>;
 }

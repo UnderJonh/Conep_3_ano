@@ -13,7 +13,7 @@ npm ci
 npm run dev
 ```
 
-Abra **http://127.0.0.1:5173** e entre com uma conta desse Supabase. Se ainda não tiver conta, o responsável cria uma em **Authentication → Users → Add user → Create new user**, com e-mail e senha. O aplicativo usa login por senha e não oferece cadastro público. Não é necessário enviar convite nem configurar SMTP para uma conta criada diretamente pelo responsável.
+Abra **http://127.0.0.1:5173**. Não existe tela de login: o aplicativo cria uma sessão anônima do Supabase automaticamente e abre direto na lista de arenas. A sessão fica guardada no navegador; limpar os dados do site cria outra identidade e perde o acesso administrativo às arenas anteriores naquele navegador.
 
 1. Preencha **Nome da arena** e clique em **Criar arena**.
 2. Para jogar imediatamente sem sensores, escolha **Treino no teclado → Iniciar corrida**.
@@ -97,7 +97,7 @@ Envio, largada, interrupção, conclusão e troca de token usam o lock da arena.
 
 O ranking recebe **somente o nome e a ID da rodada** do cliente. Pontos, distância e player vencedor vêm do snapshot validado no servidor. Repetir o mesmo nome é idempotente; tentar trocar o nome de uma inscrição existente recebe 409. A ordenação usa distância decrescente e, em empate, registro mais antigo. São exibidos os 100 primeiros. As regras estão versionadas como `v1-60s`.
 
-O proprietário da arena representa o console compartilhado dos dois jogadores: é ele quem permite ao vencedor escrever o nome. Não há contas individuais obrigatórias para cada corredor. Os tokens restringem o dispositivo, mas não comprovam fisicamente uma pisada; o operador que conhece um token ainda pode simular leituras HTTP. Isso não constitui um sistema antifraude com atestação de hardware.
+O navegador que cria a arena representa o console compartilhado dos dois jogadores: é ele quem permite ao vencedor escrever o nome. Não há contas individuais para os corredores. Os tokens restringem o dispositivo, mas não comprovam fisicamente uma pisada; o operador que conhece um token ainda pode simular leituras HTTP. Isso não constitui um sistema antifraude com atestação de hardware.
 
 ### Realtime
 
@@ -115,13 +115,13 @@ O timer de 100 ms serve apenas à animação do relógio local. Não há polling
 
 O frontend usa apenas `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`. A configuração recusa uma secret key ou JWT `service_role`. O ESP32 usa `X-Device-Token`, próprio da arena/player. Somente a Edge Function usa `SUPABASE_SERVICE_ROLE_KEY`, provisionada pelo Supabase em seu ambiente de servidor.
 
-Todas as tabelas têm RLS. Arenas e histórico exigem login e propriedade/participação. Clientes não podem editar pontos, criar snapshots nem inserir diretamente no ranking. Apenas a leitura do ranking é pública. Funções privilegiadas ficam em `private`, com `search_path` fixo e verificação de usuário/proprietário; wrappers públicos usam `SECURITY INVOKER` e grants explícitos.
+Todas as tabelas têm RLS. A sessão anônima automática recebe uma identidade real do Supabase; arenas e histórico continuam limitados ao navegador proprietário ou a participantes autorizados. Clientes não podem editar pontos, criar snapshots nem inserir diretamente no ranking. Apenas a leitura do ranking é pública. Funções privilegiadas ficam em `private`, com `search_path` fixo e verificação de identidade/propriedade; wrappers públicos usam `SECURITY INVOKER` e grants explícitos.
 
 `receber-tensao` usa `verify_jwt = false` porque autentica com o token específico do dispositivo, validado atomicamente no banco. Token incorreto ou ausente retorna 401. A publishable key não substitui o token. Gerar outro token revoga o anterior daquele jogador; copie-o antes de sair da página, pois só o hash fica persistido.
 
 No painel, mantenha:
 
-1. Login por e-mail/senha habilitado, com uma conta para o responsável.
+1. Login anônimo habilitado. A configuração versionada usa `enable_anonymous_sign_ins = true`.
 2. Schema `public` exposto na Data API; `private` não exposto.
 3. `testes` e `ranking_mundial` na publicação `supabase_realtime` — as migrations fazem isso.
 4. Função `receber-tensao` ativa e tarefa Cron `conep_voltage_run_expirar_v1` ativa.
@@ -133,7 +133,7 @@ insert into public.teste_participantes(teste_id,user_id)
 values ('UUID_DA_ARENA','UUID_DO_USUARIO_AUTH') on conflict do nothing;
 ```
 
-Ele poderá abrir `/testes/UUID_DA_ARENA` com seu login, mas não controlar a corrida ou registrar nomes. `/ranking` é aberto sem login.
+Ele poderá abrir `/testes/UUID_DA_ARENA` na sessão autorizada, mas não controlar a corrida ou registrar nomes. `/ranking` é aberto sem sessão.
 
 ## Configurar outro Supabase / publicar atualizações
 
@@ -286,16 +286,14 @@ npx supabase db query --linked --file supabase/tests/monitoramento.sql
 
 `lint` verifica TypeScript e Deno. Os seis testes do handler cobrem payload simples/lote, timestamps ordenados, limites, autenticação, CORS, erros e indisponibilidade. A suíte SQL testa força, cadência, debounce, pressão mantida, repetição, RLS, snapshot único, fim autônomo e inscrição elegível; termina com `ROLLBACK`.
 
-Para executar o teste de navegador, use uma conta dedicada de QA:
+Para executar o teste de navegador:
 
 ```powershell
 npx playwright install chromium
-$env:E2E_EMAIL = 'EMAIL_QA'
-$env:E2E_PASSWORD = 'SENHA_QA'
 npm run test:e2e
 ```
 
-O teste cria dados reais: arena, dispositivos, corridas e uma inscrição de validação. Aguarda uma corrida de 60 s terminar pelo cron com a arena fechada, verifica ranking em outro navegador sem login, treino, interrupção e reconexão. Depois da execução, remova os dados da conta dedicada pelo administrador. Sem credenciais, o teste é marcado como ignorado. Screenshots e saídas ficam na pasta temporária do sistema.
+O teste cria dados reais usando uma sessão anônima: arena, dispositivos, corridas e uma inscrição de validação. Aguarda uma corrida de 60 s terminar pelo cron com a arena fechada, verifica ranking em outro navegador, treino, interrupção e reconexão. Depois da execução, remova a identidade anônima de QA pelo administrador; suas arenas são removidas em cascata. Screenshots e saídas ficam na pasta temporária do sistema.
 
 Verifique Realtime manualmente mantendo a arena aberta e enviando leituras HTTP: os números e horários devem mudar sem recarregar. Em DevTools → Network → WS, confira `realtime/v1/websocket`. O timer continua localmente; score e resultado dependem do servidor.
 
