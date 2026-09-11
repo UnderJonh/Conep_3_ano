@@ -29,14 +29,15 @@ test('corrida oficial real → vencedor → ranking público → treino → reco
   try {
     await expect(page.getByText('Conectado ao tempo real', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Tensão Player 1', { exact: true })).toHaveText('-- V');
-    await page.locator('.device-setup summary').click();
+    await page.getByRole('button', { name: /Configurar ESP32/ }).click();
     const tokens: Record<number, string> = {};
     for (const player of [1, 2]) {
       await page.getByRole('button', { name: `Gerar token Player ${player}` }).click();
       const input = page.locator('.device-grid > div').nth(player - 1).getByLabel('DEVICE_TOKEN');
       await expect(input).toBeVisible(); tokens[player] = await input.inputValue();
     }
-    await page.locator('.device-setup summary').click();
+    await page.getByRole('button', { name: /Configurar ESP32/ }).click();
+    await page.getByRole('button', { name: '▶ Jogar', exact: true }).click();
     await page.setViewportSize({ width: 1536, height: 1024 });
     await page.screenshot({ path: join(screenshots, 'ready.png'), fullPage: true });
     await page.getByRole('button', { name: /Iniciar corrida/ }).click();
@@ -101,13 +102,15 @@ test('corrida oficial real → vencedor → ranking público → treino → reco
     await page.goto(`/testes/${id}`);
     await expect(page.getByRole('heading', { name: 'PLAYER 1 VENCEU!' })).toBeVisible();
     await page.getByLabel('Nome do vencedor').fill('QA Voltage Run');
-    await page.getByRole('button', { name: 'Entrar no ranking', exact: true }).click();
-    await expect(page.getByText('QA Voltage Run, sua vitória está no ranking mundial!')).toBeVisible();
+    await page.getByLabel('Publicar também no ranking mundial').check();
+    await page.getByRole('button', { name: 'Salvar no ranking da arena', exact: true }).click();
+    await expect(page.getByText('QA Voltage Run, sua vitória está no ranking da arena!')).toBeVisible();
     await expect(publicPage.locator('tbody tr').filter({ hasText: 'QA Voltage Run' })).toHaveCount(1);
     const rank = await db.from('ranking_mundial').select('*').eq('rodada_id', history.data![0].id).single();
     expect(rank.data!.pontos).toBe(winnerScore);
     await page.screenshot({ path: join(screenshots, 'winner.png'), fullPage: true });
     await publicPage.screenshot({ path: join(screenshots, 'ranking.png'), fullPage: true });
+    await page.getByRole('button', { name: 'Voltar à arena', exact: true }).click();
     await page.getByRole('button', { name: /Treino no teclado/ }).click();
     await page.getByRole('button', { name: /Iniciar corrida/ }).click();
     await expect(page.locator('.race-stage')).toHaveClass(/phase-running/);
@@ -119,7 +122,7 @@ test('corrida oficial real → vencedor → ranking público → treino → reco
     await page.getByRole('button', { name: 'Interromper corrida', exact: true }).click();
     await page.getByRole('button', { name: 'Confirmar interrupção', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Corrida interrompida' })).toBeVisible();
-    await expect(page.getByLabel('Nome do vencedor')).toHaveCount(0);
+    await expect(page.getByLabel('Nome do vencedor')).not.toBeVisible();
     await context.setOffline(true);
     expect((await send(1, { tensao: 1.23 })).status).toBe(200);
     await context.setOffline(false);

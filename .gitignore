@@ -5,6 +5,7 @@ dist/
 !.env.example
 !.env.test.example
 esp32/config.local.h
+esp32/config.h
 esp32/certificados.local.h
 supabase/.temp/
 supabase/.branches/

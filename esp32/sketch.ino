@@ -9,16 +9,20 @@
 #include "certificados.h"
 
 // Configuração simples. Nunca coloque service_role neste firmware.
+#if __has_include("config.h")
+#include "config.h"
+#else
 const char* WIFI_SSID = "Wokwi-GUEST";
 const char* WIFI_PASSWORD = "";
 const char* API_URL = "https://SEU_PROJETO.supabase.co/functions/v1/receber-tensao";
 const char* TESTE_ID = "UUID_DO_TESTE";
 const int PLAYER_ID = 1;  // 1 no primeiro ESP32; 2 no segundo.
 const char* DEVICE_TOKEN = "TOKEN_GERADO_NO_PAINEL_PARA_ESTE_PLAYER";
+const int PINO_ADC = 34;
+#endif
 const unsigned long INTERVALO_ENVIO = 500;
 const unsigned long INTERVALO_AMOSTRA = 20;  // Captura pulsos entre os envios HTTP.
 
-const int PINO_ADC = 34;
 unsigned long ultimoEnvio = 0;
 unsigned long ultimaReconexao = 0;
 struct Amostra { int64_t instante; float tensao; };

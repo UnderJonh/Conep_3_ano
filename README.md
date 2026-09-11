@@ -1,6 +1,6 @@
 # Voltage Run · Arena CONEP
 
-Jogo de corrida para dois jogadores com **ESP32 + Supabase + React**. Pisadas frequentes e tensões de pico maiores fazem o corredor avançar mais. Uma corrida oficial dura **60 segundos**; o vencedor pode registrar seu nome no ranking mundial. A cidade e os corredores têm visual neon inspirado na referência fornecida, com animação por sprites e interface responsiva.
+Jogo de corrida para dois jogadores com **ESP32 + Supabase + React**. Pisadas frequentes e tensões de pico maiores fazem o corredor avançar mais. A duração é personalizável de **15 a 600 segundos**; o vencedor registra seu nome no ranking da arena. Corridas oficiais de **60 segundos** também podem ser publicadas no ranking mundial. A cidade e os corredores têm visual neon inspirado na referência fornecida, com animação por sprites e interface responsiva.
 
 O backend é real: pontuação, vencedor, histórico e ranking são calculados e persistidos no Supabase. O ESP32 só coleta tensão e envia HTTPS. O navegador recebe atualizações por WebSocket, sem polling de estado.
 
@@ -16,19 +16,20 @@ npm run dev
 Abra **http://127.0.0.1:5173**. Não existe tela de login: o aplicativo cria uma sessão anônima do Supabase automaticamente e abre direto na lista de arenas. A sessão fica guardada no navegador; limpar os dados do site cria outra identidade e perde o acesso administrativo às arenas anteriores naquele navegador.
 
 1. Preencha **Nome da arena** e clique em **Criar arena**.
-2. Para jogar imediatamente sem sensores, escolha **Treino no teclado → Iniciar corrida**.
+2. Escolha a duração nos atalhos ou no campo **Tempo personalizado (segundos)**. Para jogar sem sensores, escolha **Treino no teclado → Iniciar corrida**.
 3. Aguarde a contagem de 3 segundos. Player 1 usa **A** (leve) e **S** (forte); Player 2 usa **K** (leve) e **L** (forte). No celular, toque nos botões.
 4. Solte e pressione novamente para cada pisada. Segurar a tecla não dispara repetidamente.
 5. Para uma corrida oficial, abra **Configurar ESP32**, gere os dois tokens, configure as placas e escolha **Usar ESP32 · oficial**.
-6. No fim, o vencedor informa seu nome e clica em **Entrar no ranking**. O nome será público. Também é possível abrir uma vitória anterior pelo histórico.
+6. No fim, um popup destaca o vencedor e oferece **Salvar no ranking da arena**. Em corridas oficiais de 60 s, marque a opção de publicar também no mundial. Você pode fechar o popup e registrar pelo histórico depois.
+7. A aba **Ranking da arena** separa os resultados por modo e duração. Os controles de som permitem silenciar e ajustar o volume; a preferência fica salva neste navegador.
 
-O treino exercita a mesma regra no servidor, mas **não entra no ranking**. A corrida oficial exige tokens configurados para os dois jogadores. O painel não inventa conectividade dos sensores: o indicador Realtime se refere ao navegador; os horários de atualização mostram a atividade de cada ESP32.
+O treino exercita a mesma regra no servidor e entra em sua própria categoria do **ranking da arena**, sem acesso ao mundial. A corrida oficial exige tokens configurados para os dois jogadores. O painel não inventa conectividade dos sensores: o indicador Realtime se refere ao navegador; os horários de atualização mostram a atividade de cada ESP32.
 
-## Regras v1 — 60 segundos
+## Regras v1 — duração personalizável
 
 | Regra | Comportamento |
 | --- | --- |
-| Largada | Contagem de 3 s, seguida de 60 s de corrida. |
+| Largada | Contagem de 3 s, seguida da duração escolhida (15–600 s). Não pode mudar após a largada. |
 | Pisada | Parte do sensor liberado (≤ 0,25 V), ultrapassa 0,60 V e volta a ≤ 0,25 V. |
 | Duração do pulso | Entre 20 e 1.500 ms. Pressão mantida não pontua. |
 | Intervalo mínimo | 200 ms entre liberações válidas; filtra repiques. |
@@ -36,7 +37,7 @@ O treino exercita a mesma regra no servidor, mas **não entra no ranking**. A co
 | Ritmo | Pisadas por segundo, a partir do intervalo entre as duas últimas pisadas. Após 2 s sem passos, o bônus reinicia. |
 | Distância | De 1 a 4 m de base por pisada, multiplicados por um bônus de ritmo de até 1,5×. |
 | Pontos | 10 pontos por metro completo em décimos; arredondamento para baixo. |
-| Vitória | Maior distância acumulada ao fim dos 60 s. Empate não gera inscrição. |
+| Vitória | Maior distância acumulada ao fim do tempo escolhido. Empate não gera inscrição. |
 | Interrupção | Salva resultado parcial sem vencedor elegível. Corridas não podem ser pausadas. |
 
 Fórmula executada no PostgreSQL, com distância interna em centímetros:
@@ -88,6 +89,7 @@ flowchart LR
 
 - `public.testes`: estado atual, JSONs dos players, proprietário, revisão, modo e horários da corrida.
 - `public.rodadas`: snapshot dos dois players e do resultado, único por arena/número.
+- `public.ranking_arena`: vitórias oficiais e treinos em categorias por arena, modo e duração.
 - `public.ranking_mundial`: uma entrada por vitória oficial, com nome, player, distância, pontos e pisadas.
 - `public.teste_participantes`: usuários autorizados a acompanhar uma arena.
 - `private.dispositivos`: hash do token de cada arena/player.
@@ -95,7 +97,7 @@ flowchart LR
 
 Envio, largada, interrupção, conclusão e troca de token usam o lock da arena. O snapshot e o avanço do número da rodada acontecem na mesma transação. Concluir novamente uma corrida encerrada é idempotente. Uma largada com número de rodada antigo recebe 409. Novas corridas zeram os campos do jogo e preservam outras propriedades JSON; os resultados concluídos permanecem no histórico.
 
-O ranking recebe **somente o nome e a ID da rodada** do cliente. Pontos, distância e player vencedor vêm do snapshot validado no servidor. Repetir o mesmo nome é idempotente; tentar trocar o nome de uma inscrição existente recebe 409. A ordenação usa distância decrescente e, em empate, registro mais antigo. São exibidos os 100 primeiros. As regras estão versionadas como `v1-60s`.
+O ranking recebe **somente o nome e a ID da rodada** do cliente. Pontos, distância e player vencedor vêm do snapshot validado no servidor. Repetir o mesmo nome é idempotente; tentar trocar o nome de uma inscrição existente recebe 409. A ordenação usa distância decrescente e, em empate, registro mais antigo. São exibidos os 100 primeiros. As regras estão versionadas como `v1-{duracao}s`; o mundial mantém `v1-60s`.
 
 O navegador que cria a arena representa o console compartilhado dos dois jogadores: é ele quem permite ao vencedor escrever o nome. Não há contas individuais para os corredores. Os tokens restringem o dispositivo, mas não comprovam fisicamente uma pisada; o operador que conhece um token ainda pode simular leituras HTTP. Isso não constitui um sistema antifraude com atestação de hardware.
 
@@ -314,3 +316,13 @@ Verifique Realtime manualmente mantendo a arena aberta e enviando leituras HTTP:
 - [Autenticação de Edge Functions](https://supabase.com/docs/guides/functions/auth)
 - [ADC Arduino-ESP32](https://docs.espressif.com/projects/arduino-esp32/en/latest/api/adc.html)
 - [Wi-Fi no Wokwi](https://docs.wokwi.com/guides/esp32-wifi)
+
+## Configuração guiada e efeitos de jogo
+
+Na aba **Configurar ESP32**, informe o Wi-Fi 2.4 GHz, escolha o GPIO ADC1 de cada placa, gere os tokens e baixe um `config.h` por jogador. Coloque o arquivo na mesma pasta de `esp32/sketch.ino` e `certificados.h`, então grave a placa pela Arduino IDE. Se `config.h` existir, ele substitui as constantes de exemplo do sketch. Esse arquivo contém credenciais e é ignorado pelo Git. A senha de Wi-Fi e os tokens em claro não são persistidos pelo frontend.
+
+O painel exibe tensão e idade da última leitura. Trocar um token exige confirmação e fica desabilitado durante uma corrida. Leituras de treino não indicam conectividade física.
+
+Os sons são sintetizados localmente com Web Audio (contagem, largada, pisadas, últimos 10 s e vitória), liberados após a primeira interação com a página. Não há arquivos de áudio externos. Os efeitos visuais incluem contagem ampliada, rastro de velocidade, impactos por pisada, bônus de ritmo, liderança e confetes na vitória. A preferência do sistema por movimento reduzido é respeitada.
+
+Validação: `npm run build`, `npm run lint`, `npm test`, `npm run test:e2e`. O teste `tests/customization.spec.ts` cobre duração real, exportação, áudio/mute, popup em vitórias sucessivas, ranking por categoria e negação de inscrições indevidas. É necessário hardware para validar a gravação e o circuito elétrico.

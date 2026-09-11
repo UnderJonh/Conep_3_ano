@@ -7,5 +7,6 @@ import '@fontsource/rajdhani/latin-700.css';
 import '@fontsource/orbitron/latin-800.css';
 import './styles.css';
 import './game.css';
+import './experience.css';
 
 createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);

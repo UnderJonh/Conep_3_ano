@@ -14,9 +14,9 @@ export function History({ rodadas, error, isOwner = false }: { rodadas: Rodada[]
       <thead><tr><th>Rodada</th><th>Player 1</th><th>Player 2</th><th>Resultado</th><th>Finalizada em</th>{isOwner ? <th>Ranking</th> : null}</tr></thead>
       <tbody>{rodadas.map((r) => <tr key={r.id}>
         <td>{r.numero}</td><td>{r.resultado.modo ? `${r.infos_player_1.distancia ?? 0} m` : `${voltage(r.infos_player_1.tensao)} V`}</td>
-        <td>{r.resultado.modo ? `${r.infos_player_2.distancia ?? 0} m` : `${voltage(r.infos_player_2.tensao)} V`}</td><td>{r.resultado.motivo === 'interrompida' ? 'Interrompida' : r.resultado.modo ? r.resultado.vencedor ? `Player ${r.resultado.vencedor}` : 'Empate' : 'Monitoramento'}{r.resultado.modo === 'treino' ? ' · Treino' : ''}</td><td>{time(r.created_at, true)}</td>{isOwner ? <td>{r.resultado.elegivel_ranking ? <button className="text-button" onClick={() => setSelected(selected === r.id ? null : r.id)}>Abrir vitória</button> : '—'}</td> : null}
+        <td>{r.resultado.modo ? `${r.infos_player_2.distancia ?? 0} m` : `${voltage(r.infos_player_2.tensao)} V`}</td><td>{r.resultado.motivo === 'interrompida' ? 'Interrompida' : r.resultado.modo ? r.resultado.vencedor ? `Player ${r.resultado.vencedor}` : 'Empate' : 'Monitoramento'}{r.resultado.modo === 'treino' ? ' · Treino' : ''}</td><td>{time(r.created_at, true)}</td>{isOwner ? <td>{(r.resultado.elegivel_arena || r.resultado.elegivel_ranking) ? <button className="text-button" onClick={() => setSelected(selected === r.id ? null : r.id)}>Abrir vitória</button> : '—'}</td> : null}
       </tr>)}</tbody>
     </table></div> : <p className="empty-inline">Nenhuma rodada finalizada.</p>}
-    {victory ? <WinnerForm key={victory.id} rodada={victory} isOwner={isOwner} /> : null}
+    {victory ? <WinnerForm key={victory.id} rodada={victory} isOwner={isOwner} autoOpen /> : null}
   </section>;
 }
