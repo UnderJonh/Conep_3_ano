@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "npm run dev --workspace frontend",
     "build": "npm run build --workspace frontend",
+    "start": "node server.mjs",
     "lint": "npm run typecheck --workspace frontend && deno check supabase/functions/receber-tensao/index.ts",
     "test": "deno test supabase/functions/receber-tensao/handler.test.ts",
     "test:e2e": "playwright test"

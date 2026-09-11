@@ -166,6 +166,10 @@ npm run preview --workspace frontend
 
 O build fica em `frontend/dist`. Para acesso pela internet, publique essa pasta em uma hospedagem estática com fallback de `/testes/*` e `/ranking` para `/index.html`. `_redirects` está incluído para provedores compatíveis. **O backend e o ranking estão no Supabase; o frontend desta entrega roda localmente e ainda precisa de hospedagem para ter uma URL pública.** Não há resultados fictícios pré-carregados.
 
+### Railway
+
+O repositório inclui `railway.json` e `server.mjs`. No Railway, configure as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` no serviço e faça um novo deploy. Elas precisam existir durante o build do Vite. O Railway executará `npm ci && npm run build`, iniciará `npm start` na porta fornecida em `PORT` e verificará a rota `/`. Rotas como `/ranking` e `/testes/:id` recebem o fallback correto da SPA.
+
 Se preferir criar a arena pelo SQL Editor:
 
 ```sql
