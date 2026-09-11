@@ -168,7 +168,7 @@ O build fica em `frontend/dist`. Para acesso pela internet, publique essa pasta 
 
 ### Railway
 
-O repositório inclui `railway.json` e `server.mjs`. No Railway, configure as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` no serviço e faça um novo deploy. Elas precisam existir durante o build do Vite. O Railway instala as dependências uma vez, executa `npm run build` com Node 22.12 ou superior, inicia `npm start` na porta fornecida em `PORT` e verifica a rota `/`. Rotas como `/ranking` e `/testes/:id` recebem o fallback correto da SPA.
+O repositório inclui `railway.json` e `server.mjs`. No Railway, configure as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` no serviço e faça um novo deploy. Elas precisam existir durante o build do Vite. O builder Railpack instala as dependências uma vez, executa `npm run build` com Node 22.12 ou superior, inicia `npm start` na porta fornecida em `PORT` e verifica a rota `/`. Rotas como `/ranking` e `/testes/:id` recebem o fallback correto da SPA.
 
 Se preferir criar a arena pelo SQL Editor:
 
