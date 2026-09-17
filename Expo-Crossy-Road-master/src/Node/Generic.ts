@@ -1,0 +1,89 @@
+import { Box3, Mesh, Vector3 } from "three";
+
+import Models from "../Models";
+import CrossyMaterial from "../CrossyMaterial";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
+import { Asset } from "expo-asset";
+
+function setShadows(mesh, { castShadow, receiveShadow }) {
+  mesh.traverse((child) => {
+    if (child instanceof Mesh) {
+      child.castShadow = castShadow;
+      child.receiveShadow = receiveShadow;
+    }
+  });
+
+  mesh.castShadow = castShadow;
+  mesh.receiveShadow = receiveShadow;
+}
+export default class Generic {
+  models = {};
+
+  globalModels = Models;
+
+  getSize = (mesh) => {
+    let box = new Box3().setFromObject(mesh);
+    // console.log( box.min, box.max, box.size() );
+    return box.getSize(new Vector3());
+  };
+  getWidth = (mesh) => {
+    let box = new Box3().setFromObject(mesh);
+    // console.log( box.min, box.max, box.size() );
+    return box.getSize(new Vector3()).x;
+  };
+
+  _downloadAssets = async ({
+    name,
+    model,
+    texture,
+    castShadow,
+    receiveShadow,
+  }) => {
+    const material = await CrossyMaterial.loadAsync(texture);
+    const loader = new OBJLoader();
+
+    const fileContents = await fetch(Asset.fromModule(model).uri).then((res) =>
+      res.text()
+    );
+    const _model = await loader.parse(fileContents);
+
+    _model.traverse((child) => {
+      if (child instanceof Mesh) {
+        child.material = material;
+      }
+    });
+
+    setShadows(_model, { castShadow, receiveShadow });
+    return _model;
+  };
+
+  getRandom = () => {
+    let keys = Object.keys(this.models);
+    const key = keys[(keys.length * Math.random()) << 0];
+    return this.models[key].clone();
+  };
+
+  getNode(key = "0") {
+    if (key in this.models) {
+      return this.models[key].clone();
+    } else {
+      throw new Error(
+        `Generic: Node with Key ${key} does not exist in ${JSON.stringify(
+          Object.keys(this.models),
+          null,
+          2
+        )}`
+      );
+    }
+  }
+
+  _register = async (key, props) => {
+    return (this.models[key] = await this._download(props));
+  };
+
+  _download = async (props) => {
+    return await this._downloadAssets(props);
+  };
+
+  setup = async () => {};
+}

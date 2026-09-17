@@ -1,141 +1,40 @@
 import { test, expect } from '@playwright/test';
-import { createClient } from '@supabase/supabase-js';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+
 import { mkdirSync } from 'node:fs';
 
-test('corrida oficial real → vencedor → ranking público → treino → reconexão', async ({ page, context, browser }) => {
+test('jogo 3D abre direto, avança uma vez por tecla e mostra créditos', async ({ page }) => {
   const errors: string[] = [];
+  mkdirSync(`${process.env.TEMP}/conep-crossy-qa`, { recursive: true });
   page.on('pageerror', error => errors.push(error.message));
-  const screenshots = process.env.E2E_SCREENSHOTS ?? join(tmpdir(), 'conep-game-qa');
-  mkdirSync(screenshots, { recursive: true });
   await page.goto('/');
-  await expect(page).toHaveTitle('Voltage Run · Arena CONEP');
-  await expect(page.getByRole('heading', { name: 'Escolha sua arena.' })).toBeVisible();
-  await expect(page.getByLabel('E-mail')).toHaveCount(0);
-  const storedSession = await page.evaluate(() => {
-    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('sb-') && key.endsWith('-auth-token'));
-    if (!entry) throw new Error('Sessão anônima não encontrada.');
-    return JSON.parse(entry[1]) as { access_token: string; refresh_token: string };
-  });
-  const db = createClient(process.env.VITE_SUPABASE_URL!, process.env.VITE_SUPABASE_PUBLISHABLE_KEY!);
-  const attached = await db.auth.setSession(storedSession);
-  expect(attached.error).toBeNull();
-  await page.getByLabel('Nome da arena').fill('Arena CONEP · validação');
-  await page.getByRole('button', { name: 'Criar arena', exact: true }).click();
-  await expect(page).toHaveURL(/\/testes\/[0-9a-f-]{36}$/);
-  const id = page.url().split('/').at(-1)!;
-  const anonymous = await browser.newContext();
-  try {
-    await expect(page.getByText('Conectado ao tempo real', { exact: true })).toBeVisible();
-    await expect(page.getByLabel('Tensão Player 1', { exact: true })).toHaveText('-- V');
-    await page.getByRole('button', { name: /Configurar ESP32/ }).click();
-    const tokens: Record<number, string> = {};
-    for (const player of [1, 2]) {
-      await page.getByRole('button', { name: `Gerar token Player ${player}` }).click();
-      const input = page.locator('.device-grid > div').nth(player - 1).getByLabel('DEVICE_TOKEN');
-      await expect(input).toBeVisible(); tokens[player] = await input.inputValue();
-    }
-    await page.getByRole('button', { name: /Configurar ESP32/ }).click();
-    await page.getByRole('button', { name: '▶ Jogar', exact: true }).click();
-    await page.setViewportSize({ width: 1536, height: 1024 });
-    await page.screenshot({ path: join(screenshots, 'ready.png'), fullPage: true });
-    await page.getByRole('button', { name: /Iniciar corrida/ }).click();
-    await expect(page.locator('.race-stage')).toHaveClass(/phase-running/);
-    const early = await db.rpc('concluir_corrida', { p_teste_id: id });
-    expect(early.error?.code).toBe('PT409');
-    const fakeKeyboard = await db.rpc('pisada_treino', { p_teste_id: id, p_player: 1, p_forca: 3.3 });
-    expect(fakeKeyboard.error?.code).toBe('PT409');
-    const clock = await db.rpc('hora_servidor');
-    const offset = Date.parse(clock.data!) - Date.now();
-    async function send(player: number, values: object, token = tokens[player]) {
-      return fetch(`${process.env.VITE_SUPABASE_URL}/functions/v1/receber-tensao`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Device-Token': token },
-        body: JSON.stringify({ teste_id: id, player, ...values }),
-      });
-    }
-    async function pulse(player: number, force: number) {
-      const ms = Math.floor(Date.now() + offset);
-      const amostras = [{ tensao: 0, instante_ms: ms - 100 }, { tensao: force, instante_ms: ms - 80 }, { tensao: 0, instante_ms: ms }];
-      const response = await send(player, { amostras });
-      expect(response.status, await response.text()).toBe(200);
-      return amostras;
-    }
-    const first = await Promise.all([pulse(1, 3.3), pulse(2, 1.5)]);
-    await expect(page.getByLabel('Pisadas Player 1', { exact: true })).toHaveText('1');
-    await expect(page.getByLabel('Pontos Player 1', { exact: true })).toHaveText('40');
-    // Pode expirar durante a espera do WebSocket; ambos os caminhos mantêm o placar.
-    expect([200, 400]).toContain((await send(1, { amostras: first[0] })).status);
-    await expect(page.getByLabel('Pisadas Player 1', { exact: true })).toHaveText('1');
-    expect((await send(2, { tensao: 3.3 }, tokens[1])).status).toBe(401);
-    expect((await send(1, { tensao: -1 })).status).toBe(400);
-    for (let n = 0; n < 8; n++) {
-      await new Promise(resolve => setTimeout(resolve, 320));
-      await Promise.all(n % 2 ? [pulse(1, 3.3)] : [pulse(1, 3.3), pulse(2, 1.5)]);
-    }
-    await expect(page.getByLabel('Pisadas Player 1', { exact: true })).toHaveText('9');
-    await expect(page.getByLabel('Pisadas Player 2', { exact: true })).toHaveText('5');
-    await Promise.all([send(1, { tensao: 2.81 }), send(2, { tensao: 1.94 })]);
-    await expect(page.getByLabel('Tensão Player 1', { exact: true })).toHaveText('2,81 V');
-    await expect(page.getByLabel('Tensão Player 2', { exact: true })).toHaveText('1,94 V');
-    await page.screenshot({ path: join(screenshots, 'desktop.png'), fullPage: true });
-    await page.setViewportSize({ width: 390, height: 844 });
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    await page.screenshot({ path: join(screenshots, 'mobile.png'), fullPage: true });
-    await page.setViewportSize({ width: 1536, height: 1024 });
-    // Deixa o servidor encerrar a corrida sozinho, sem esta arena aberta.
-    const publicPage = await anonymous.newPage();
-    await publicPage.goto('http://127.0.0.1:5173/ranking');
-    await expect(publicPage.getByRole('heading', { name: /Os nomes que foram mais longe/ })).toBeVisible();
-    await page.getByRole('link', { name: 'Corridas', exact: true }).click();
-    const started = await db.from('testes').select('corrida_fim').eq('id', id).single();
-    const remaining = Math.max(0, Date.parse(started.data!.corrida_fim) - (Date.now() + offset) + 8000);
-    await new Promise(resolve => setTimeout(resolve, remaining));
-    const finished = await db.from('testes').select('*').eq('id', id).single();
-    expect(finished.error).toBeNull(); expect(finished.data!.status).toBe('finalizado');
-    const finals = await Promise.all([1, 2].map(() => db.rpc('concluir_corrida', { p_teste_id: id })));
-    expect(finals.every(result => !result.error)).toBe(true);
-    const history = await db.from('rodadas').select('*').eq('teste_id', id);
-    expect(history.data).toHaveLength(1);
-    expect(history.data![0].resultado.vencedor).toBe(1);
-    const winnerScore = history.data![0].infos_player_1.pontos;
-    await page.goto(`/testes/${id}`);
-    await expect(page.getByRole('heading', { name: 'PLAYER 1 VENCEU!' })).toBeVisible();
-    await page.getByLabel('Nome do vencedor').fill('QA Voltage Run');
-    await page.getByLabel('Publicar também no ranking mundial').check();
-    await page.getByRole('button', { name: 'Salvar no ranking da arena', exact: true }).click();
-    await expect(page.getByText('QA Voltage Run, sua vitória está no ranking da arena!')).toBeVisible();
-    await expect(publicPage.locator('tbody tr').filter({ hasText: 'QA Voltage Run' })).toHaveCount(1);
-    const rank = await db.from('ranking_mundial').select('*').eq('rodada_id', history.data![0].id).single();
-    expect(rank.data!.pontos).toBe(winnerScore);
-    await page.screenshot({ path: join(screenshots, 'winner.png'), fullPage: true });
-    await publicPage.screenshot({ path: join(screenshots, 'ranking.png'), fullPage: true });
-    await page.getByRole('button', { name: 'Voltar à arena', exact: true }).click();
-    await page.getByRole('button', { name: /Treino no teclado/ }).click();
-    await page.getByRole('button', { name: /Iniciar corrida/ }).click();
-    await expect(page.locator('.race-stage')).toHaveClass(/phase-running/);
-    await page.keyboard.press('s');
-    await expect(page.getByLabel('Pisadas Player 1', { exact: true })).toHaveText('1');
-    await page.getByRole('button', { name: 'K · Pisada leve', exact: true }).click();
-    await expect(page.getByLabel('Pisadas Player 2', { exact: true })).toHaveText('1');
-    expect((await send(1, { tensao: 3.3 })).status).toBe(409);
-    await page.getByRole('button', { name: 'Interromper corrida', exact: true }).click();
-    await page.getByRole('button', { name: 'Confirmar interrupção', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Corrida interrompida' })).toBeVisible();
-    await expect(page.getByLabel('Nome do vencedor')).not.toBeVisible();
-    await context.setOffline(true);
-    expect((await send(1, { tensao: 1.23 })).status).toBe(200);
-    await context.setOffline(false);
-    await expect(page.getByLabel('Tensão Player 1', { exact: true })).toHaveText('1,23 V', { timeout: 45_000 });
-    await page.reload();
-    await expect(page.getByText('Conectado ao tempo real', { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Corrida interrompida' })).toBeVisible();
-    expect(errors).toEqual([]);
-    await expect(page.getByRole('button', { name: 'Sair' })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Entrar' })).toHaveCount(0);
-  } finally {
-    await context.setOffline(false);
-    await db.auth.signOut();
-    await anonymous.close();
-  }
+  await expect(page).toHaveTitle('Crossy Road · CONEP');
+  await expect(page.getByRole('button', { name: 'Mover galinha para frente' })).toBeVisible();
+  await expect(page.getByAltText('Crossy Road')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Configurar ESP32' })).toBeVisible();
+  const buttons = await page.locator('.game-toolbar button').allTextContents();
+  expect(buttons[0].trim()).toBe(''); expect(buttons[1]).toBe('Créditos');
+  await page.keyboard.down('Space');
+  await expect(page.getByLabel('Pontuação')).toHaveText('1');
+  await page.keyboard.down('Space'); // browser repeat must not move again
+  await page.keyboard.up('Space');
+  await expect(page.getByLabel('Pontuação')).toHaveText('1');
+  await page.getByRole('button', { name: 'Créditos', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByText('Projeto CONEP · 3º ano', { exact: true })).toBeVisible();
+  await page.keyboard.press('Space');
+  await expect(page.getByLabel('Pontuação')).toHaveText('1');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await page.getByRole('button', { name: 'Mover galinha para frente' }).click();
+  await expect(page.getByLabel('Pontuação')).toHaveText('2');
+  await page.screenshot({ path: `${process.env.TEMP}/conep-crossy-qa/game.png` });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Créditos', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  const fits = await page.getByRole('dialog').evaluate(element => { const rect = element.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight; });
+  expect(fits).toBe(true);
+  await page.screenshot({ path: `${process.env.TEMP}/conep-crossy-qa/mobile-credits.png` });
+  await page.keyboard.press('Escape');
+  await page.screenshot({ path: `${process.env.TEMP}/conep-crossy-qa/mobile.png` });
+  expect(errors).toEqual([]);
 });

@@ -10,6 +10,7 @@ const types = {
   '.ico': 'image/x-icon', '.jpeg': 'image/jpeg', '.jpg': 'image/jpeg',
   '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8',
   '.png': 'image/png', '.svg': 'image/svg+xml', '.woff': 'font/woff', '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf', '.txt': 'text/plain; charset=utf-8',
 };
 
 if (!existsSync(join(root, 'index.html'))) {
@@ -35,4 +36,4 @@ createServer((request, response) => {
   });
   if (request.method === 'HEAD') response.end();
   else createReadStream(file).on('error', () => response.destroy()).pipe(response);
-}).listen(port, '0.0.0.0', () => console.log(`Voltage Run disponível na porta ${port}`));
+}).listen(port, '0.0.0.0', () => console.log(`Crossy Road disponível na porta ${port}`));

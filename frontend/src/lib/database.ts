@@ -10,6 +10,7 @@ export type Teste = {
   status: 'aguardando' | 'rodando' | 'pausado' | 'finalizado'; revisao: number;
   modo: 'oficial' | 'treino'; corrida_inicio: string | null; corrida_fim: string | null; ultima_rodada_id: string | null;
   duracao_segundos: number; created_at: string; updated_at: string;
+  crossy: boolean; limiar_forte: number;
 };
 export type Resultado = {
   vencedor?: 1 | 2 | null; motivo?: 'tempo' | 'interrompida'; modo?: 'oficial' | 'treino';
@@ -33,6 +34,7 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      configurar_crossy: { Args: { p_teste_id: string; p_limiar: number }; Returns: Teste };
       configurar_dispositivo: { Args: { p_teste_id: string; p_player: number; p_token_hash: string }; Returns: undefined };
       alterar_status: { Args: { p_teste_id: string; p_status: string }; Returns: Teste };
       finalizar_rodada: { Args: { p_teste_id: string; p_rodada_esperada: number }; Returns: Teste };

@@ -1,0 +1,362 @@
+@font-face {
+  font-family:Retro;
+  src:url('../../Expo-Crossy-Road-master/assets/fonts/retro.ttf') format('truetype');
+  font-display:swap
+}
+
+:root {
+  font-family:Arial,Helvetica,sans-serif;
+  color:#283127;
+  background:#87c6ff;
+  font-synthesis:none
+}
+* {
+  box-sizing:border-box
+}
+body {
+  margin:0
+}
+button,input,select {
+  font:inherit
+}
+button {
+  cursor:pointer;
+  color:#263222;
+  background:#fff;
+  border:2px solid #334629;
+  border-radius:5px;
+  padding:11px 16px;
+  box-shadow:0 4px 0 #334629;
+  font-weight:700
+}
+button:hover {
+  background:#f0f9dc
+}
+button:active {
+  transform:translateY(2px);
+  box-shadow:0 2px 0 #334629
+}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible {
+  outline:3px solid #0069b4;
+  outline-offset:4px
+}
+button:disabled {
+  opacity:.45;
+  cursor:default
+}
+input,select {
+  width:100%;
+  border:1px solid #a1ae95;
+  border-radius:4px;
+  padding:10px;
+  background:#fff;
+  color:#283127
+}
+input[type=range] {
+  padding:8px 0;
+  accent-color:#608d34
+}
+label {
+  display:block;
+  font-size:14px;
+  font-weight:700;
+  margin:15px 0
+}
+label input,label select {
+  display:block;
+  margin-top:7px
+}
+.crossy-app {
+  position:fixed;
+  inset:0;
+  overflow:hidden
+}
+.game-canvas {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block
+}
+.game-touch {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+  border-radius:0
+}
+.game-touch:hover,.game-touch:active {
+  background:transparent;
+  transform:none;
+  box-shadow:none
+}
+.home-overlay {
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  pointer-events:none;
+  padding:24px;
+  text-align:center
+}
+.home-overlay img {
+  width:min(65vw,540px);
+  max-height:35vh;
+  object-fit:contain;
+  filter:drop-shadow(0 5px 0 #0003)
+}
+.home-overlay p {
+  font-family:Retro,Arial,sans-serif;
+  font-size:clamp(18px,2vw,25px);
+  color:#fff;
+  text-shadow:2px 3px #2b4220;
+  margin:30px 0 12px
+}
+.home-overlay small {
+  color:#fff;
+  font-size:14px;
+  background:#283b28b3;
+  padding:7px 12px;
+  border-radius:4px
+}
+.game-toolbar {
+  position:absolute;
+  right:max(22px,env(safe-area-inset-right));
+  bottom:max(24px,env(safe-area-inset-bottom));
+  display:flex;
+  align-items:center;
+  gap:12px
+}
+.game-toolbar button {
+  height:48px;
+  background:#fffef3;
+  box-shadow:0 5px 0 #334629
+}
+.settings-icon {
+  width:50px;
+  padding:10px
+}
+.settings-icon svg {
+  height:26px;
+  width:26px
+}
+.credits-button {
+  font-size:15px
+}
+.crossy-score {
+  position:absolute;
+  left:26px;
+  top:24px;
+  color:white;
+  font-family:Retro,Arial,sans-serif;
+  font-size:48px;
+  text-shadow:3px 4px #253921
+}
+.loading-game,.game-over {
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:20px
+}
+.loading-game {
+  background:#87c6ff
+}
+.game-over {
+  background:#22301d66;
+  color:white;
+  text-shadow:2px 2px #263822
+}
+.game-over h1 {
+  font-family:Retro,Arial,sans-serif;
+  font-size:clamp(27px,5vw,46px);
+  margin:0
+}
+.game-over p {
+  font-size:24px;
+  margin:0
+}
+.game-over button {
+  font-size:18px;
+  padding:15px 24px
+}
+.crossy-dialog {
+  width:min(520px,calc(100vw - 28px));
+  max-height:calc(100dvh - 40px);
+  padding:24px;
+  border:3px solid #34432b;
+  border-radius:8px;
+  background:#fffef3;
+  color:#283127;
+  box-shadow:0 8px 0 #34432b;
+  overscroll-behavior:contain
+}
+.crossy-dialog::backdrop {
+  background:#17261c88
+}
+.dialog-heading {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  margin-bottom:18px
+}
+.dialog-heading h1 {
+  font-size:23px;
+  margin:0
+}
+.close-dialog {
+  font-size:27px;
+  width:38px;
+  height:38px;
+  line-height:20px;
+  padding:4px;
+  flex-shrink:0;
+  box-shadow:none;
+  border:0;
+  background:transparent
+}
+.esp-setup p,.credits-content p {
+  line-height:1.5;
+  margin:12px 0
+}
+.esp-signal {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  background:#e9ecdF;
+  padding:13px;
+  border-radius:5px
+}
+.esp-signal strong {
+  margin-left:auto;
+  white-space:nowrap
+}
+.signal-dot {
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#8f9488;
+  flex-shrink:0
+}
+.online .signal-dot {
+  background:#4a9c3b
+}
+.esp-setup progress {
+  width:100%;
+  height:8px;
+  accent-color:#70a33d;
+  margin-top:9px
+}
+.small {
+  font-size:12px;
+  color:#62715c
+}
+.esp-setup fieldset {
+  border:0;
+  padding:0;
+  margin:24px 0 0
+}
+.esp-setup legend {
+  font-size:17px;
+  font-weight:700;
+  border-bottom:1px solid #d9dfd0;
+  padding-bottom:10px;
+  width:100%
+}
+.secondary-button {
+  box-shadow:none;
+  background:#e9efdf;
+  border:1px solid #a1ae95;
+  padding:10px 14px
+}
+.token-controls {
+  border-top:1px solid #d9dfd0;
+  margin-top:24px;
+  padding-top:20px
+}
+.token-confirm {
+  margin:14px 0;
+  padding:12px;
+  background:#edf2e4
+}
+.token-confirm button {
+  margin:0 8px 8px 0
+}
+.setup-error {
+  color:#a83228;
+  background:#fae6de;
+  padding:10px;
+  border-radius:4px;
+  font-size:13px;
+  line-height:1.5
+}
+.setup-error button {
+  margin-top:10px;
+  display:block
+}
+.setup-message {
+  font-size:13px;
+  color:#42682d
+}
+.esp-setup details {
+  margin-top:20px;
+  border-top:1px solid #d9dfd0;
+  padding-top:16px;
+  font-size:13px
+}
+.esp-setup summary {
+  cursor:pointer;
+  font-weight:700
+}
+.esp-setup ol {
+  padding-left:20px;
+  line-height:1.6
+}
+.esp-setup li {
+  margin:8px 0
+}
+.credits-content h2 {
+  font-size:18px
+}
+.original-credit {
+  border-top:1px solid #d9dfd0;
+  padding-top:18px;
+  font-size:12px;
+  color:#62715c
+}
+@media(max-width:600px) {
+  .home-overlay img {
+  width:85vw
+}
+.game-toolbar {
+  right:16px;
+  bottom:20px
+}
+.crossy-dialog {
+  padding:19px;
+  max-height:calc(100dvh - 28px)
+}
+.home-overlay p {
+  margin-top:22px
+}
+.esp-signal {
+  padding:11px 9px;
+  font-size:12px
+}
+.crossy-score {
+  font-size:36px;
+  left:18px;
+  top:20px
+}
+
+}
+

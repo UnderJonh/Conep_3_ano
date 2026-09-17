@@ -16,11 +16,11 @@ const char* WIFI_SSID = "Wokwi-GUEST";
 const char* WIFI_PASSWORD = "";
 const char* API_URL = "https://SEU_PROJETO.supabase.co/functions/v1/receber-tensao";
 const char* TESTE_ID = "UUID_DO_TESTE";
-const int PLAYER_ID = 1;  // 1 no primeiro ESP32; 2 no segundo.
-const char* DEVICE_TOKEN = "TOKEN_GERADO_NO_PAINEL_PARA_ESTE_PLAYER";
+const int PLAYER_ID = 1;  // Crossy Road usa uma única placa.
+const char* DEVICE_TOKEN = "TOKEN_GERADO_NA_CONFIGURACAO_DO_ESP32";
 const int PINO_ADC = 34;
 #endif
-const unsigned long INTERVALO_ENVIO = 500;
+const unsigned long INTERVALO_ENVIO = 200;
 const unsigned long INTERVALO_AMOSTRA = 20;  // Captura pulsos entre os envios HTTP.
 
 unsigned long ultimoEnvio = 0;
@@ -88,8 +88,8 @@ void loop() {
     Serial.println("Aguardando sincronizacao de hora para HTTPS...");
     return;
   }
-  if (PLAYER_ID != 1 && PLAYER_ID != 2) {
-    Serial.println("PLAYER_ID precisa ser 1 ou 2.");
+  if (PLAYER_ID != 1) {
+    Serial.println("Crossy Road usa PLAYER_ID = 1.");
     return;
   }
 
