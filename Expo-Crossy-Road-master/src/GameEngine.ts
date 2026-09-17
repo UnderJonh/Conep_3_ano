@@ -75,10 +75,10 @@ export default class Engine {
     this._hero.stopIdle();
     if (collision === "car") {
       AudioManager.playCarHitSound();
-      AudioManager.playDeathSound();
+      AudioManager.playDeathSound(this._hero._character);
     } else if (collision === "train") {
       await AudioManager.playAsync(AudioManager.sounds.train.die[`0`]);
-      AudioManager.playDeathSound();
+      AudioManager.playDeathSound(this._hero._character);
     }
     this.scene.useParticle(this._hero, type, obstacle.speed);
     this.scene.rumble();
@@ -114,11 +114,9 @@ export default class Engine {
     this.scene.world.position.x +=
       (targetCameraX - this.scene.world.position.x) * CAMERA_EASING;
 
-    // normal camera speed
-    if (-this.scene.world.position.z - this.camCount > 1.0) {
-      this.camCount = -this.scene.world.position.z;
-      this.gameMap.newRow();
-    }
+    // Terrain follows player progress rather than the camera's easing. Catch up
+    // with every crossed row, including queued steps and slow rendering frames.
+    this.gameMap.ensureRowsAhead(this._hero.position.z);
   };
 
   // Reset variables, restart game
@@ -152,14 +150,14 @@ export default class Engine {
     if (this._hero.position.z < this.camera.position.z - 1) {
       this.scene.rumble();
       this.gameOver();
-      AudioManager.playDeathSound();
+      AudioManager.playDeathSound(this._hero._character);
     }
 
     // Check if offscreen
     if (this._hero.position.x < -5 || this._hero.position.x > 5) {
       this.scene.rumble();
       this.gameOver();
-      AudioManager.playDeathSound();
+      AudioManager.playDeathSound(this._hero._character);
     }
   };
 
@@ -189,6 +187,8 @@ export default class Engine {
     if (this.isGameEnded()) {
       return;
     }
+
+    this.gameMap.ensureRowsAhead(this._hero.position.z + 1);
 
     const { SWIPE_UP, SWIPE_DOWN, SWIPE_LEFT, SWIPE_RIGHT } = swipeDirections;
 
@@ -335,7 +335,7 @@ export default class Engine {
 
     const targetRow =
       this.gameMap.getRow(this._hero.initialPosition.z + velocity.z) || {};
-    let finalY = targetRow.entity.top || groundLevel;
+    let finalY = targetRow.entity?.top ?? groundLevel;
     // If the next move is into the river, then we want to jump into it.
     if (targetRow.type === "water") {
       const ridable = targetRow.entity.getRidableForPosition(
@@ -349,7 +349,7 @@ export default class Engine {
       }
     }
 
-    AudioManager.playMoveSound();
+    AudioManager.playMoveSound(this._hero._character);
 
     this._hero.targetPosition.y = finalY;
 

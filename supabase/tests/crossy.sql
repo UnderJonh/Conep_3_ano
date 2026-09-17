@@ -1,37 +1,161 @@
+-- Execute após a migration nova. Todos os dados de teste são revertidos.
 begin;
-do $$
-declare i jsonb:='{}'; s jsonb:='{}'; result jsonb; count_before bigint;
-begin
-  -- Ignore a weak press, then accept exactly one complete strong press.
-  result:=private.processar_amostra_crossy(i,s,0,1000,1.5); i:=result->'info';s:=result->'estado';
-  result:=private.processar_amostra_crossy(i,s,1.2,1020,1.5); i:=result->'info';s:=result->'estado';
-  result:=private.processar_amostra_crossy(i,s,0,1060,1.5); i:=result->'info';s:=result->'estado';
-  if coalesce((i->>'comandos')::bigint,0)<>0 then raise exception 'Weak press moved the chicken'; end if;
-  result:=private.processar_amostra_crossy(i,s,1.5,1100,1.5); i:=result->'info';s:=result->'estado';
-  result:=private.processar_amostra_crossy(i,s,2.5,1120,1.5); i:=result->'info';s:=result->'estado';
-  result:=private.processar_amostra_crossy(i,s,0,1140,1.5); i:=result->'info';s:=result->'estado';
-  if (i->>'comandos')::bigint<>1 or (i->>'pico_tensao')::numeric<>2.5 then raise exception 'Strong press was not counted once'; end if;
-  -- Duplicate batches, bounce, and a held sensor cannot produce extra commands.
-  result:=private.processar_amostra_crossy(i,s,2.5,1120,1.5); i:=result->'info';s:=result->'estado';
-  result:=private.processar_amostra_crossy(i,s,0,1140,1.5); i:=result->'info';s:=result->'estado';
-  result:=private.processar_amostra_crossy(i,s,3.3,1180,1.5); i:=result->'info';s:=result->'estado';
-  result:=private.processar_amostra_crossy(i,s,0,1200,1.5); i:=result->'info';s:=result->'estado';
-  result:=private.processar_amostra_crossy(i,s,3.3,1600,1.5); i:=result->'info';s:=result->'estado';
-  result:=private.processar_amostra_crossy(i,s,3.3,3200,1.5); i:=result->'info';s:=result->'estado';
-  result:=private.processar_amostra_crossy(i,s,0,3300,1.5); i:=result->'info';s:=result->'estado';
-  if (i->>'comandos')::bigint<>1 then raise exception 'Duplicate, bounce, or held press counted'; end if;
-  result:=private.processar_amostra_crossy(i,s,2,3600,1.5); i:=result->'info';s:=result->'estado';
-  result:=private.processar_amostra_crossy(i,s,0,3640,1.5); i:=result->'info';s:=result->'estado';
-  if (i->>'comandos')::bigint<>2 then raise exception 'Second valid press missing'; end if;
-  -- A device booting with pressure already applied must first be released.
-  result:=private.processar_amostra_crossy('{}','{}',3.3,1000,1.5);
-  result:=private.processar_amostra_crossy(result->'info',result->'estado',0,1040,1.5);
-  if coalesce((result->'info'->>'comandos')::bigint,0)<>0 then raise exception 'Startup press counted'; end if;
-  -- Configured sensitivity changes the minimum qualifying voltage.
-  result:=private.processar_amostra_crossy('{}','{}',0,1000,2.5);
-  result:=private.processar_amostra_crossy(result->'info',result->'estado',2,1020,2.5);
-  result:=private.processar_amostra_crossy(result->'info',result->'estado',0,1060,2.5);
-  if coalesce((result->'info'->>'comandos')::bigint,0)<>0 then raise exception 'Sensitivity ignored'; end if;
+insert into auth.users(id) values ('11111111-1111-4111-8111-111111111111'), ('22222222-2222-4222-8222-222222222222');
+select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+set local role authenticated;
+insert into public.testes(nome) values ('Crossy QA');
+select set_config('crossy.qa_connection', (select id::text from public.testes where nome = 'Crossy QA'), true);
+select public.configurar_crossy(current_setting('crossy.qa_connection')::uuid, 1.5);
+select public.configurar_dispositivo(current_setting('crossy.qa_connection')::uuid, 1, repeat('a', 64));
+do $$ begin
+  if public.dispositivos_configurados(current_setting('crossy.qa_connection')::uuid) <> array[1] then raise exception 'Placa não configurada'; end if;
+  begin
+    update public.testes set limiar_forte = 0.6;
+    raise exception 'Escrita direta deveria falhar';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.configurar_dispositivo(current_setting('crossy.qa_connection')::uuid, 2, repeat('a', 64));
+    raise exception 'Placa 2 deveria falhar';
+  exception when sqlstate 'PT400' then null; end;
+  begin
+    perform public.configurar_crossy(current_setting('crossy.qa_connection')::uuid, 0.3);
+    raise exception 'Sensibilidade inválida deveria falhar';
+  exception when sqlstate 'PT400' then null; end;
 end $$;
-select 'Crossy pulse detection passed' as resultado;
+
+select public.registrar_recorde_crossy('33333333-3333-4333-8333-333333333333', '  Ana  ', 12);
+select public.registrar_recorde_crossy('33333333-3333-4333-8333-333333333333', 'Ana', 12);
+select public.registrar_recorde_crossy('44444444-4444-4444-8444-444444444444', 'João', 20);
+do $$ begin
+  if (select count(id) from public.crossy_ranking where id = '33333333-3333-4333-8333-333333333333') <> 1 then raise exception 'Reenvio duplicou recorde'; end if;
+  if (select nome from public.crossy_ranking order by pontos desc, created_at limit 1) <> 'João' then raise exception 'Ranking fora de ordem'; end if;
+  begin
+    perform public.registrar_recorde_crossy(gen_random_uuid(), '   ', 1);
+    raise exception 'Nome vazio deveria falhar';
+  exception when sqlstate 'PT400' then null; end;
+  begin
+    perform public.registrar_recorde_crossy(gen_random_uuid(), repeat('x', 25), 1);
+    raise exception 'Nome longo deveria falhar';
+  exception when sqlstate 'PT400' then null; end;
+  begin
+    perform public.registrar_recorde_crossy(gen_random_uuid(), 'Ana', 0);
+    raise exception 'Pontuação zero deveria falhar';
+  exception when sqlstate 'PT400' then null; end;
+  begin
+    perform public.registrar_recorde_crossy('33333333-3333-4333-8333-333333333333', 'Ana', 999);
+    raise exception 'Alteração de recorde deveria falhar';
+  exception when sqlstate 'PT409' then null; end;
+  begin
+    perform public.registrar_tensao(current_setting('crossy.qa_connection')::uuid, 1, 2, repeat('a', 64));
+    raise exception 'Navegador não pode enviar telemetria';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+reset role;
+select set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-222222222222', true);
+set local role authenticated;
+do $$ begin
+  if exists (select id from public.testes where id = current_setting('crossy.qa_connection')::uuid) then raise exception 'Outro usuário leu conexão'; end if;
+  begin
+    perform public.configurar_crossy(current_setting('crossy.qa_connection')::uuid, 2);
+    raise exception 'Outro usuário configurou conexão';
+  exception when sqlstate 'PT403' then null; end;
+  begin
+    perform public.configurar_dispositivo(current_setting('crossy.qa_connection')::uuid, 1, repeat('b', 64));
+    raise exception 'Outro usuário substituiu token';
+  exception when sqlstate 'PT403' then null; end;
+  begin
+    perform public.registrar_recorde_crossy('33333333-3333-4333-8333-333333333333', 'Ana', 12);
+    raise exception 'Outro usuário registrou partida alheia';
+  exception when sqlstate 'PT409' then null; end;
+end $$;
+
+reset role;
+set local role anon;
+do $$ begin
+  if (select count(id) from public.crossy_ranking where id in ('33333333-3333-4333-8333-333333333333', '44444444-4444-4444-8444-444444444444')) <> 2 then raise exception 'Ranking público não acessível'; end if;
+  begin
+    perform owner_id from public.crossy_ranking;
+    raise exception 'Ranking expôs identidade privada';
+  exception when insufficient_privilege then null; end;
+  begin
+    delete from public.crossy_ranking;
+    raise exception 'Visitante apagou ranking';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.registrar_recorde_crossy(gen_random_uuid(), 'Visitante', 30);
+    raise exception 'Gravação sem sessão deveria falhar';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+reset role;
+set local role service_role;
+do $$
+declare id uuid := current_setting('crossy.qa_connection')::uuid;
+  ms bigint := floor(extract(epoch from clock_timestamp()) * 1000)::bigint - 2600;
+  pulse jsonb; result jsonb;
+begin
+  -- Pisada fraca: não conta.
+  result := public.registrar_amostras(id, 1, jsonb_build_array(
+    jsonb_build_object('tensao', 0, 'instante_ms', ms),
+    jsonb_build_object('tensao', 1.2, 'instante_ms', ms + 20),
+    jsonb_build_object('tensao', 0, 'instante_ms', ms + 60)), repeat('a', 64));
+  if (result->>'comandos')::integer <> 0 then raise exception 'Pisada fraca contou'; end if;
+  -- Pisada forte seguida de reenvio idêntico: conta uma vez.
+  pulse := jsonb_build_array(
+    jsonb_build_object('tensao', 0, 'instante_ms', ms + 200),
+    jsonb_build_object('tensao', 2.4, 'instante_ms', ms + 220),
+    jsonb_build_object('tensao', 0, 'instante_ms', ms + 260));
+  result := public.registrar_amostras(id, 1, pulse, repeat('a', 64));
+  if (result->>'comandos')::integer <> 1 then raise exception 'Pisada forte não contou'; end if;
+  result := public.registrar_amostras(id, 1, pulse, repeat('a', 64));
+  if (result->>'comandos')::integer <> 1 then raise exception 'Reenvio duplicou comando'; end if;
+  -- Repique dentro de 200 ms: não conta.
+  result := public.registrar_amostras(id, 1, jsonb_build_array(
+    jsonb_build_object('tensao', 2.4, 'instante_ms', ms + 280),
+    jsonb_build_object('tensao', 0, 'instante_ms', ms + 320)), repeat('a', 64));
+  if (result->>'comandos')::integer <> 1 then raise exception 'Repique contou'; end if;
+  -- Pulso repartido entre lotes: conta somente na liberação.
+  result := public.registrar_amostras(id, 1, jsonb_build_array(jsonb_build_object('tensao', 2.8, 'instante_ms', ms + 500)), repeat('a', 64));
+  if (result->>'comandos')::integer <> 1 then raise exception 'Contou antes de soltar'; end if;
+  result := public.registrar_amostras(id, 1, jsonb_build_array(jsonb_build_object('tensao', 0, 'instante_ms', ms + 550)), repeat('a', 64));
+  if (result->>'comandos')::integer <> 2 then raise exception 'Pulso dividido não contou'; end if;
+  -- Pressão mantida por mais de 1.500 ms: não conta.
+  result := public.registrar_amostras(id, 1, jsonb_build_array(
+    jsonb_build_object('tensao', 2.8, 'instante_ms', ms + 800),
+    jsonb_build_object('tensao', 0, 'instante_ms', ms + 2400)), repeat('a', 64));
+  if (result->>'comandos')::integer <> 2 then raise exception 'Pressão mantida contou'; end if;
+  begin
+    perform public.registrar_amostras(id, 1, pulse, repeat('b', 64));
+    raise exception 'Token inválido deveria falhar';
+  exception when sqlstate 'PT401' then null; end;
+  begin
+    perform public.registrar_tensao(id, 1, 'NaN'::float8, repeat('a', 64));
+    raise exception 'NaN deveria falhar';
+  exception when sqlstate 'PT400' then null; end;
+end $$;
+
+reset role;
+select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+set local role authenticated;
+select public.configurar_crossy(current_setting('crossy.qa_connection')::uuid, 3.0);
+select public.configurar_dispositivo(current_setting('crossy.qa_connection')::uuid, 1, repeat('c', 64));
+reset role;
+set local role service_role;
+do $$
+declare id uuid := current_setting('crossy.qa_connection')::uuid;
+  ms bigint := floor(extract(epoch from clock_timestamp()) * 1000)::bigint;
+  result jsonb;
+begin
+  begin
+    perform public.registrar_tensao(id, 1, 0, repeat('a', 64));
+    raise exception 'Token antigo não foi revogado';
+  exception when sqlstate 'PT401' then null; end;
+  result := public.registrar_amostras(id, 1, jsonb_build_array(
+    jsonb_build_object('tensao', 0, 'instante_ms', ms),
+    jsonb_build_object('tensao', 2.8, 'instante_ms', ms + 20),
+    jsonb_build_object('tensao', 0, 'instante_ms', ms + 60)), repeat('c', 64));
+  if (result->>'comandos')::integer <> 2 then raise exception 'Sensibilidade nova ignorada'; end if;
+end $$;
+reset role;
 rollback;

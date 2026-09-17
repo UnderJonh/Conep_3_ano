@@ -1,8 +1,7 @@
-import { Power2, TweenMax } from "gsap";
+import { Power2, TweenLite, TweenMax } from "gsap";
 import { Object3D, Box3 } from "three";
 
 import ModelLoader from "../ModelLoader";
-import { disableDriftwood } from "../GameSettings";
 import Foam from "../Particles/Foam";
 
 export default class Water extends Object3D {
@@ -22,17 +21,17 @@ export default class Water extends Object3D {
 
   generate = (clearPositions: number[] = []) => {
     this.entities.map((val) => {
+      TweenMax.killTweensOf(val.mesh.position);
+      TweenMax.killTweensOf(val.mesh.rotation);
       this.floor.remove(val.mesh);
       val = null;
     });
     this.entities = [];
     this.lilyPadPositions = [];
 
-    if (this.isStaticRow(this.position.z | 0)) {
-      this.generateStatic(clearPositions);
-    } else if (!disableDriftwood) {
-      this.generateDynamic();
-    }
+    // A forward-only controller cannot recover from sideways drift on a log.
+    // Keep a permanent center crossing on every river, with scenery at the sides.
+    this.generateStatic(clearPositions);
   };
 
   // Returns all x positions that have lily pads (rounded to integers)

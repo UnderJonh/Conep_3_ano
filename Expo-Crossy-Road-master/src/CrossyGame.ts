@@ -12,7 +12,7 @@ import {
 import * as THREE from "three";
 
 import AudioManager from "./AudioManager";
-import { MAP_OFFSET, maxRows } from "./GameSettings";
+import { MAP_OFFSET, maxRows, rowsAhead, rowsBehind, startingRow } from "./GameSettings";
 import Feathers from "./Particles/Feathers";
 import Water from "./Particles/Water";
 import Rows from "./Row";
@@ -203,11 +203,14 @@ export class CrossyGameMap extends GameMap {
   roads = new EntityContainer();
   railRoads = new EntityContainer();
   rowCount = 0;
+  firstRetainedRow = 0;
 
   constructor({ heroWidth, onCollide, scene }) {
     super();
 
     this.heroWidth = heroWidth;
+    this.onCollide = onCollide;
+    this.scene = scene;
 
     // Assign mesh to corresponding array
     // and add mesh to scene
@@ -250,17 +253,45 @@ export class CrossyGameMap extends GameMap {
   };
 
   // Scene generators
+  acquireRow = (container, create) => {
+    const index = container.count % container.items.length;
+    let row = container.items[index];
+    const previousIndex = row.position.z;
+    // Never recycle terrain that is still around the player, even during a long
+    // sequence of the same row type. Grow the pool only when all slots are live.
+    if (previousIndex >= this.firstRetainedRow && this.getRow(previousIndex)?.entity === row) {
+      const reusable = container.items.findIndex(item => item.position.z < this.firstRetainedRow || this.getRow(item.position.z)?.entity !== item);
+      if (reusable >= 0) { container.count = reusable; row = container.items[reusable]; }
+      else {
+        row = create(); container.count = container.items.length;
+        container.items.push(row); this.scene.world.add(row);
+      }
+    }
+    if (this.getRow(row.position.z)?.entity === row) delete this.floorMap[`${row.position.z}`];
+    return row;
+  };
+
+  ensureRowsAhead = (position) => {
+    this.firstRetainedRow = Math.max(0, Math.floor(position) - rowsBehind);
+    for (const index of Object.keys(this.floorMap)) {
+      if (Number(index) >= this.firstRetainedRow) continue;
+      this.floorMap[index].entity.active = false;
+      delete this.floorMap[index];
+    }
+    while (this.rowCount <= Math.ceil(position) + rowsAhead) this.newRow();
+  };
+
   newRow = (rowKind) => {
-    if (this.grasses.count === maxRows) {
+    if (this.grasses.count === this.grasses.items.length) {
       this.grasses.count = 0;
     }
-    if (this.roads.count === maxRows) {
+    if (this.roads.count === this.roads.items.length) {
       this.roads.count = 0;
     }
-    if (this.water.count === maxRows) {
+    if (this.water.count === this.water.items.length) {
       this.water.count = 0;
     }
-    if (this.railRoads.count === maxRows) {
+    if (this.railRoads.count === this.railRoads.items.length) {
       this.railRoads.count = 0;
     }
     if (this.rowCount < 10) {
@@ -277,6 +308,7 @@ export class CrossyGameMap extends GameMap {
 
     switch (rowKind) {
       case "grass":
+        this.acquireRow(this.grasses, () => new Rows.Grass(this.heroWidth));
         this.grasses.items[this.grasses.count].position.z = this.rowCount;
 
         // If previous row is water, ensure lily pad positions are kept clear
@@ -297,6 +329,7 @@ export class CrossyGameMap extends GameMap {
         break;
       case "roadtype":
         if (((Math.random() * 4) | 0) === 0) {
+          this.acquireRow(this.railRoads, () => new Rows.RailRoad(this.heroWidth, this.onCollide));
           this.railRoads.items[this.railRoads.count].position.z = this.rowCount;
           this.railRoads.items[this.railRoads.count].active = true;
           this.setRow(this.rowCount, {
@@ -305,6 +338,7 @@ export class CrossyGameMap extends GameMap {
           });
           this.railRoads.count++;
         } else {
+          this.acquireRow(this.roads, () => new Rows.Road(this.heroWidth, this.onCollide));
           this.roads.items[this.roads.count].position.z = this.rowCount;
 
           const previousRowType = (this.getRow(this.rowCount - 1) || {}).type;
@@ -320,6 +354,7 @@ export class CrossyGameMap extends GameMap {
         }
         break;
       case "water":
+        this.acquireRow(this.water, () => new Rows.Water(this.heroWidth, this.onCollide));
         this.water.items[this.water.count].position.z = this.rowCount;
         this.water.items[this.water.count].active = true;
 
@@ -348,20 +383,14 @@ export class CrossyGameMap extends GameMap {
     this.railRoads.count = 0;
 
     this.rowCount = 0;
+    this.firstRetainedRow = 0;
     super.reset();
   }
 
   // Setup initial scene
   init = () => {
-    for (let i = 0; i < maxRows; i++) {
-      this.grasses.items[i].position.z = MAP_OFFSET;
-
-      this.water.items[i].position.z = MAP_OFFSET;
-      this.water.items[i].active = false;
-      this.roads.items[i].position.z = MAP_OFFSET;
-      this.roads.items[i].active = false;
-      this.railRoads.items[i].position.z = MAP_OFFSET;
-      this.railRoads.items[i].active = false;
+    for (const container of [this.grasses, this.water, this.roads, this.railRoads]) {
+      for (const row of container.items) { row.position.z = MAP_OFFSET; row.active = false; }
     }
 
     this.grasses.items[this.grasses.count].position.z = this.rowCount;
@@ -371,9 +400,7 @@ export class CrossyGameMap extends GameMap {
     this.grasses.count++;
     this.rowCount++;
 
-    for (let i = 0; i < maxRows + 3; i++) {
-      this.newRow();
-    }
+    this.ensureRowsAhead(startingRow);
   };
 
   mapRowToObstacle = (row) => {

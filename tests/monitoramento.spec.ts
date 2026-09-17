@@ -6,6 +6,7 @@ test('jogo 3D abre direto, avança uma vez por tecla e mostra créditos', async 
   const errors: string[] = [];
   mkdirSync(`${process.env.TEMP}/conep-crossy-qa`, { recursive: true });
   page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/rest/v1/crossy_ranking*', route => route.fulfill({ json: [] }));
   await page.goto('/');
   await expect(page).toHaveTitle('Crossy Road · CONEP');
   await expect(page.getByRole('button', { name: 'Mover galinha para frente' })).toBeVisible();

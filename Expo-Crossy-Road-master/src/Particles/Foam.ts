@@ -73,7 +73,7 @@ export default class Foam extends Object3D {
         ease: Bounce.easeOut,
         onComplete: (_) => {
           const lScale = 0.01;
-          TweenLite.to(n.scale, lDuration, {
+          TweenMax.to(n.scale, lDuration, {
             x: lScale,
             y: lScale,
             z: lScale,

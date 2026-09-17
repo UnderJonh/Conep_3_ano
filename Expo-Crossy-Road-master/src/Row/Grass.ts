@@ -38,7 +38,7 @@ export default class Grass extends Object3D {
     this.obstacleMap = {};
     this.requiredClearPositions = new Set(requiredClearPositions);
     // The CONEP controller only moves forward. Keep the center path clear.
-    this.requiredClearPositions.add(0);
+    for (const x of [-1, 0, 1]) this.requiredClearPositions.add(x);
     this.treeGen(type);
   };
 

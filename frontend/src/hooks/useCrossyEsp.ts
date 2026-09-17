@@ -1,19 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { client, configError, errorMessage } from '../lib/supabase';
 import type { Teste } from '../lib/database';
+import { ensureSession } from '../lib/session';
 
 let preparing: Promise<Teste> | undefined;
 async function prepareBoard() {
   const db = client();
-  const current = await db.auth.getSession();
-  if (current.error) throw current.error;
-  let user = current.data.session?.user;
-  if (!user) {
-    const auth = await db.auth.signInAnonymously();
-    if (auth.error) throw auth.error;
-    user = auth.data.user!;
-  }
-  const existing = await db.from('testes').select('*').eq('owner_id', user.id).eq('crossy', true).order('created_at').limit(1).maybeSingle();
+  const userId = await ensureSession();
+  const existing = await db.from('testes').select('*').eq('owner_id', userId).order('created_at').limit(1).maybeSingle();
   if (existing.error) throw existing.error;
   if (existing.data) return existing.data;
   const created = await db.from('testes').insert({ nome: 'Crossy Road · CONEP' }).select('*').single();

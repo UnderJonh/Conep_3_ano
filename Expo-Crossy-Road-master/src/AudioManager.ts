@@ -6,11 +6,12 @@ class AudioManager {
 
   audioFileMoveIndex = 0;
 
-  playMoveSound = async () => {
-    const sound = this.sounds.chicken.move[`${this.audioFileMoveIndex}`];
+  playMoveSound = async (character = 'chicken') => {
+    const moves = this.sounds[character]?.move ?? this.sounds.chicken.move;
+    const sound = Object.values(moves)[this.audioFileMoveIndex % Object.keys(moves).length];
     this.audioFileMoveIndex =
       (this.audioFileMoveIndex + 1) %
-      Object.keys(this.sounds.chicken.move).length;
+      Object.keys(moves).length;
     await this.playAsync(sound);
   };
 
@@ -20,10 +21,9 @@ class AudioManager {
     }
   };
 
-  playDeathSound = async () => {
-    await this.playAsync(
-      this.sounds.chicken.die[`${Math.floor(Math.random() * 2)}`]
-    );
+  playDeathSound = async (character = 'chicken') => {
+    const deaths = Object.values(this.sounds[character]?.die ?? this.sounds.chicken.die);
+    await this.playAsync(deaths[Math.floor(Math.random() * deaths.length)]);
   };
 
   playCarHitSound = async () => {

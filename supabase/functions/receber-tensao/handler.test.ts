@@ -8,7 +8,7 @@ const leitura = { teste_id: '11111111-1111-4111-8111-111111111111', player: 1 as
 const request = (body: unknown, token = 'a'.repeat(64)) => new Request('http://localhost', {
   method: 'POST', headers: { 'content-type': 'application/json', 'x-device-token': token }, body: JSON.stringify(body),
 });
-const success: Registrar = async (value) => ({ data: { ...value, ok: true, rodada: 3 }, error: null });
+const success: Registrar = async (value) => ({ data: { ...value, ok: true, comandos: 3 }, error: null });
 
 Deno.test('valida UUID, player estrito, tensão finita e propriedades permitidas', () => {
   for (const value of [null, [], {}, { ...leitura, teste_id: 'abc' }, { ...leitura, player: '1' },
@@ -17,7 +17,8 @@ Deno.test('valida UUID, player estrito, tensão finita e propriedades permitidas
     equal(validarLeitura(value), false);
   }
   equal(validarLeitura({ ...leitura, tensao: 0 }), true);
-  equal(validarLeitura({ ...leitura, player: 2, tensao: 3.6 }), true);
+  equal(validarLeitura({ ...leitura, player: 2, tensao: 3.6 }), false);
+  equal(validarLeitura({ ...leitura, tensao: 3.6 }), true);
 });
 Deno.test('retorna leitura e envia só hash SHA-256 ao banco', async () => {
   const handler = criarHandler(async (value, hash) => {
@@ -27,7 +28,7 @@ Deno.test('retorna leitura e envia só hash SHA-256 ao banco', async () => {
   });
   const response = await handler(request(leitura));
   equal(response.status, 200);
-  equal(await response.json(), { ...leitura, ok: true, rodada: 3 });
+  equal(await response.json(), { ...leitura, ok: true, comandos: 3 });
 });
 Deno.test('nega token ausente e nunca consulta banco em payload inválido', async () => {
   const handler = criarHandler(() => { throw new Error('Não deveria chamar o banco'); });

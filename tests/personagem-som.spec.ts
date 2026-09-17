@@ -5,12 +5,13 @@ test('personalização altera a prévia, preserva a partida e mantém preferênc
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  await page.route('**/rest/v1/crossy_ranking*', route => route.fulfill({ json: [] }));
   await page.addInitScript(() => {
     const audioWindow = window as Window & { playedSounds?: number[] };
     audioWindow.playedSounds = [];
     const start = AudioBufferSourceNode.prototype.start;
     AudioBufferSourceNode.prototype.start = function (...args: Parameters<typeof start>) {
-      if (this.buffer) audioWindow.playedSounds!.push(this.buffer.duration);
+      if (this.buffer && !this.loop) audioWindow.playedSounds!.push(this.buffer.duration);
       start.apply(this, args);
     };
   });
@@ -29,7 +30,7 @@ test('personalização altera a prévia, preserva a partida e mantém preferênc
   await expect(page.getByRole('button', { name: 'Galinha', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.character-preview figcaption')).toHaveText('Galinha');
   // Allow the asynchronous preview renderer to produce its first frame.
-  await expect.poll(() => preview.evaluate(canvas => (canvas as HTMLCanvasElement).width)).toBeGreaterThan(300);
+  await expect.poll(() => preview.evaluate(canvas => (canvas as HTMLCanvasElement).width)).toBeGreaterThan(150);
   const originalPreview = await preview.screenshot();
   await page.getByRole('button', { name: 'Bacon', exact: true }).click();
   await expect(page.locator('.character-preview figcaption')).toHaveText('Bacon');

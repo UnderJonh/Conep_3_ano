@@ -105,8 +105,8 @@ label input,label select {
   text-align:center
 }
 .home-overlay img {
-  width:min(65vw,540px);
-  max-height:35vh;
+  width:min(100vw,940px);
+  max-height:54dvh;
   object-fit:contain;
   filter:drop-shadow(0 5px 0 #0003)
 }
@@ -115,14 +115,7 @@ label input,label select {
   font-size:clamp(18px,2vw,25px);
   color:#fff;
   text-shadow:2px 3px #2b4220;
-  margin:30px 0 12px
-}
-.home-overlay small {
-  color:#fff;
-  font-size:14px;
-  background:#283b28b3;
-  padding:7px 12px;
-  border-radius:4px
+  margin:12px 0 0
 }
 .game-toolbar {
   position:absolute;
@@ -188,40 +181,62 @@ label input,label select {
   padding:15px 24px
 }
 .crossy-dialog {
-  width:min(520px,calc(100vw - 28px));
+  width:min(580px,calc(100vw - 32px));
   max-height:calc(100dvh - 40px);
-  padding:24px;
+  padding:0;
   border:3px solid #34432b;
-  border-radius:8px;
+  border-top:8px solid #7aa143;
+  border-radius:12px;
   background:#fffef3;
   color:#283127;
-  box-shadow:0 8px 0 #34432b;
+  box-shadow:0 8px 0 #34432b,0 24px 80px #17261c44;
   overscroll-behavior:contain
 }
+.crossy-dialog[open] {
+  display:flex;
+  flex-direction:column
+}
+.crossy-dialog[data-modal=customization] {
+  width:min(720px,calc(100vw - 32px))
+}
+.dialog-content {
+  overflow-y:auto;
+  min-height:0;
+  padding:0 26px 26px;
+  scrollbar-width:thin;
+  scrollbar-color:#a1ae95 transparent
+}
 .crossy-dialog::backdrop {
-  background:#17261c88
+  background:#17261caa
 }
 .dialog-heading {
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:15px;
-  margin-bottom:18px
+  margin:0;
+  padding:20px 26px;
+  flex-shrink:0;
+  border-bottom:1px solid #d9dfd0
 }
 .dialog-heading h1 {
-  font-size:23px;
-  margin:0
+  font-family:Retro,Arial,sans-serif;
+  font-size:18px;
+  line-height:1.45;
+  margin:0;
+  overflow-wrap:anywhere
 }
 .close-dialog {
   font-size:27px;
-  width:38px;
-  height:38px;
+  width:44px;
+  height:44px;
   line-height:20px;
   padding:4px;
   flex-shrink:0;
   box-shadow:none;
-  border:0;
-  background:transparent
+  border:1px solid #d9dfd0;
+  border-radius:6px;
+  background:#e9efdf
 }
 .esp-setup p,.credits-content p {
   line-height:1.5;
@@ -348,21 +363,40 @@ label input,label select {
   color:#62715c
 }
 .character-preview {
-  margin:0 0 20px;
+  margin:20px 0 0;
   padding:8px 12px 14px;
   text-align:center;
-  background:#e9efdf;
+  background:#e5efd9;
   border:1px solid #d9dfd0;
   border-radius:6px
 }
 .character-preview canvas {
   display:block;
   width:100%;
-  height:160px
+  height:205px
 }
 .character-preview figcaption {
   font-weight:700;
   font-size:14px
+}
+.character-customization {
+  display:grid;
+  grid-template-columns:220px minmax(0,1fr);
+  column-gap:24px
+}
+.character-customization .character-preview {
+  grid-column:1;
+  grid-row:1 / span 2;
+  align-self:start
+}
+.character-customization .customization-options {
+  grid-column:2
+}
+.character-customization > .small,.character-customization > button {
+  grid-column:1 / -1
+}
+.character-customization > button {
+  justify-self:start
 }
 .customization-options {
   margin:20px 0;
@@ -379,8 +413,11 @@ label input,label select {
   flex-wrap:wrap;
   gap:10px
 }
+.character-options {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr))
+}
 .character-options button {
-  flex:1 0 90px;
   padding:10px;
   font-size:13px;
   border-color:#a1ae95;
@@ -403,9 +440,24 @@ label input,label select {
   border:3px solid #334629
 }
 .game-sound-settings {
+  grid-column:1 / -1;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:24px;
   margin:24px 0 18px;
   padding-top:8px;
   border-top:1px solid #d9dfd0
+}
+.sound-channel label {
+  font-size:13px
+}
+.record-form {
+  padding-top:24px
+}
+.record-form .record-score {
+  padding:18px 20px;
+  background:#e5efd9;
+  border-radius:6px
 }
 .game-sound-settings label {
   display:flex;
@@ -423,17 +475,115 @@ label input,label select {
 .character-customization > .small {
   line-height:1.5
 }
+.crossy-best {
+  position:absolute;
+  right:24px;
+  top:24px;
+  padding:9px 12px;
+  border-radius:4px;
+  background:#283b28b3;
+  color:white;
+  font-size:14px;
+  pointer-events:none
+}
+.crossy-best strong {
+  margin-left:8px
+}
+.ranking-table {
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+  margin-top:18px;
+  font-size:14px
+}
+.ranking-table th,.ranking-table td {
+  padding:12px 8px;
+  text-align:left;
+  border-bottom:1px solid #d9dfd0;
+  overflow-wrap:anywhere
+}
+.ranking-table th:first-child,.ranking-table td:first-child {
+  width:72px
+}
+.ranking-table th:last-child,.ranking-table td:last-child {
+  width:80px;
+  text-align:right;
+  font-variant-numeric:tabular-nums
+}
+.ranking-table tbody tr:first-child {
+  background:#e9efdf
+}
+.ranking-empty {
+  padding:24px 0;
+  text-align:center;
+  line-height:1.5
+}
+.record-form p,.player-ranking > p {
+  line-height:1.5
+}
+.record-score {
+  margin:0;
+  font-family:Retro,Arial,sans-serif;
+  font-size:38px;
+  color:#42682d
+}
+.record-score span {
+  font-family:Arial,Helvetica,sans-serif;
+  font-size:18px
+}
+.record-actions {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:12px;
+  margin-top:24px
+}
+.visually-hidden {
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0
+}
 @media(max-width:600px) {
   .home-overlay img {
-  width:85vw
+  width:110vw;
+  max-height:48dvh
 }
 .game-toolbar {
   right:16px;
   bottom:20px
 }
 .crossy-dialog {
-  padding:19px;
   max-height:calc(100dvh - 28px)
+}
+.dialog-heading {
+  padding:16px 18px;
+  gap:10px
+}
+.dialog-heading h1 {
+  font-size:15px
+}
+.dialog-content {
+  padding:0 18px 20px
+}
+.character-customization {
+  display:block
+}
+.character-preview canvas {
+  height:155px
+}
+.game-sound-settings {
+  grid-template-columns:1fr;
+  gap:18px
+}
+.sound-channel + .sound-channel {
+  border-top:1px solid #d9dfd0;
+  padding-top:12px
 }
 .home-overlay p {
   margin-top:22px
@@ -445,6 +595,10 @@ label input,label select {
 .crossy-score {
   font-size:36px;
   left:18px;
+  top:20px
+}
+.crossy-best {
+  right:18px;
   top:20px
 }
 

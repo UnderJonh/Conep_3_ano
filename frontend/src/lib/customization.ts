@@ -10,8 +10,8 @@ export const characters = [
 
 export type CharacterId = typeof characters[number]['id'];
 export type Appearance = { character: CharacterId; color: string };
-export type GamePreferences = Appearance & { volume: number };
-export const defaultPreferences: GamePreferences = { character: 'chicken', color: '#ffffff', volume: 60 };
+export type GamePreferences = Appearance & { volume: number; musicVolume: number };
+export const defaultPreferences: GamePreferences = { character: 'chicken', color: '#ffffff', volume: 60, musicVolume: 28 };
 const storageKey = 'crossy:customization:v1';
 
 export function loadPreferences(): GamePreferences {
@@ -21,6 +21,7 @@ export function loadPreferences(): GamePreferences {
       character: characters.some(character => character.id === saved?.character) ? saved!.character! : defaultPreferences.character,
       color: typeof saved?.color === 'string' && /^#[\da-f]{6}$/i.test(saved.color) ? saved.color : defaultPreferences.color,
       volume: typeof saved?.volume === 'number' && Number.isFinite(saved.volume) ? Math.max(0, Math.min(100, saved.volume)) : defaultPreferences.volume,
+      musicVolume: typeof saved?.musicVolume === 'number' && Number.isFinite(saved.musicVolume) ? Math.max(0, Math.min(100, saved.musicVolume)) : defaultPreferences.musicVolume,
     };
   } catch { return { ...defaultPreferences }; }
 }
