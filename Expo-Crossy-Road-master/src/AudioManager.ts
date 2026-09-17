@@ -1,21 +1,17 @@
 import { createAudioPlayer, AudioPlayer } from "expo-audio";
 import AudioFiles from "./Audio";
 
-// Web just can't seem to handle audio
-const MUTED = process.env.EXPO_OS === "web";
-
 class AudioManager {
   sounds = AudioFiles;
 
   audioFileMoveIndex = 0;
 
   playMoveSound = async () => {
-    await this.playAsync(
-      this.sounds.chicken.move[`${this.audioFileMoveIndex}`]
-    );
+    const sound = this.sounds.chicken.move[`${this.audioFileMoveIndex}`];
     this.audioFileMoveIndex =
       (this.audioFileMoveIndex + 1) %
       Object.keys(this.sounds.chicken.move).length;
+    await this.playAsync(sound);
   };
 
   playPassiveCarSound = async () => {
@@ -53,24 +49,27 @@ class AudioManager {
     if (!this._soundCache[resourceId]) {
       this._soundCache[resourceId] = [];
     }
-    const tag = "loaded-sound-" + resourceId;
-    console.time(tag);
     const player = createAudioPlayer(resourceId);
-    console.timeEnd(tag);
     this._soundCache[resourceId].push(player);
     return player;
   };
 
   playAsync = async (soundObject: number) => {
-    if (MUTED) return;
-
     let player = await this.getIdleSoundAsync(soundObject);
     if (!player) {
-      player = await this.createIdleSoundAsync(soundObject);
+      const cached = this._soundCache[soundObject];
+      // Bound overlapping effects, even during frequent train passages.
+      player = cached?.length >= 4 ? cached[0] : await this.createIdleSoundAsync(soundObject);
     } else {
       player.seekTo(0);
     }
-    player.play();
+    await player.play();
+  };
+
+  dispose = () => {
+    Object.values(this._soundCache).forEach(players => players.forEach(player => player.remove()));
+    this._soundCache = {};
+    this.audioFileMoveIndex = 0;
   };
 
   stopAsync = async (name: string) => {

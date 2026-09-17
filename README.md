@@ -15,6 +15,12 @@ Abra **http://127.0.0.1:5173/**. O jogo abre diretamente, inclusive sem Supabase
 
 Para usar o ESP, configure na raiz `.env.local` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` (modelo em `.env.example`). Use somente a chave pública. A conexão do jogo com a placa fica vinculada à sessão anônima deste navegador.
 
+## Personagem e sons
+
+Clique no **ícone de paleta**, ao lado da engrenagem, para abrir a personalização. Escolha um dos sete personagens originais, ajuste a cor e veja a prévia 3D. A aparência muda imediatamente, preservando a pontuação.
+
+Os sons originais de passos, colisões, água e trens estão ativos. A janela de personalização inclui volume de **0 a 100%** e **Testar som**; em 0%, os efeitos ficam desativados. O navegador libera o áudio após o primeiro toque ou tecla. Aparência e volume ficam salvos neste navegador e são mantidos ao reiniciar a partida ou recarregar a página.
+
 ## Configurar uma placa
 
 1. Clique na **engrenagem**, ao lado de **Créditos**. O jogo pausa enquanto a configuração está aberta.

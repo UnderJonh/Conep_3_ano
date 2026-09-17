@@ -327,11 +327,101 @@ label input,label select {
 .credits-content h2 {
   font-size:18px
 }
+.credits-team {
+  padding-left:24px;
+  margin:24px 0;
+}
+.credits-team li {
+  padding-left:4px;
+  margin:18px 0;
+  line-height:1.5;
+}
+.credits-team li p {
+  margin:4px 0 0;
+  font-size:13px;
+  color:#62715c;
+}
 .original-credit {
   border-top:1px solid #d9dfd0;
   padding-top:18px;
   font-size:12px;
   color:#62715c
+}
+.character-preview {
+  margin:0 0 20px;
+  padding:8px 12px 14px;
+  text-align:center;
+  background:#e9efdf;
+  border:1px solid #d9dfd0;
+  border-radius:6px
+}
+.character-preview canvas {
+  display:block;
+  width:100%;
+  height:160px
+}
+.character-preview figcaption {
+  font-weight:700;
+  font-size:14px
+}
+.customization-options {
+  margin:20px 0;
+  padding:0;
+  border:0
+}
+.customization-options legend {
+  margin-bottom:12px;
+  font-size:14px;
+  font-weight:700
+}
+.character-options,.color-options {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px
+}
+.character-options button {
+  flex:1 0 90px;
+  padding:10px;
+  font-size:13px;
+  border-color:#a1ae95;
+  box-shadow:0 3px 0 #a1ae95
+}
+.character-options button[aria-pressed=true] {
+  background:#d8edb6;
+  border-color:#334629;
+  box-shadow:0 3px 0 #334629
+}
+.color-swatch {
+  width:44px;
+  height:44px;
+  padding:0;
+  border-color:#a1ae95;
+  box-shadow:none;
+  font-size:23px
+}
+.color-swatch[aria-pressed=true] {
+  border:3px solid #334629
+}
+.game-sound-settings {
+  margin:24px 0 18px;
+  padding-top:8px;
+  border-top:1px solid #d9dfd0
+}
+.game-sound-settings label {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:8px
+}
+.game-sound-settings output {
+  color:#62715c;
+  font-weight:400
+}
+.game-sound-settings input {
+  margin-bottom:12px
+}
+.character-customization > .small {
+  line-height:1.5
 }
 @media(max-width:600px) {
   .home-overlay img {
@@ -359,4 +449,3 @@ label input,label select {
 }
 
 }
-

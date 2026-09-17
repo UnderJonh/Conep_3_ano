@@ -11,8 +11,10 @@ test('jogo 3D abre direto, avança uma vez por tecla e mostra créditos', async 
   await expect(page.getByRole('button', { name: 'Mover galinha para frente' })).toBeVisible();
   await expect(page.getByAltText('Crossy Road')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Configurar ESP32' })).toBeVisible();
-  const buttons = await page.locator('.game-toolbar button').allTextContents();
-  expect(buttons[0].trim()).toBe(''); expect(buttons[1]).toBe('Créditos');
+  await expect(page.getByRole('button', { name: 'Personalizar personagem' })).toBeVisible();
+  const espButton = page.getByRole('button', { name: 'Configurar ESP32' });
+  await expect(espButton).toHaveText('');
+  await expect(espButton.locator('+ button')).toHaveText('Créditos');
   await page.keyboard.down('Space');
   await expect(page.getByLabel('Pontuação')).toHaveText('1');
   await page.keyboard.down('Space'); // browser repeat must not move again

@@ -90,13 +90,39 @@ export default class CrossyPlayer extends Group {
     if (!node)
       throw new Error(`Failed to get node for character: ${character}`);
     if (this.node) {
+      this.disposeMaterials();
       this.remove(this.node);
     }
+
+    node.traverse((child) => {
+      if (!child.isMesh) return;
+      child.material = Array.isArray(child.material)
+        ? child.material.map((material) => material.clone())
+        : child.material.clone();
+    });
 
     utils.scaleLongestSideToSize(node, 1);
     utils.alignMesh(node, { x: 0.5, z: 0.5, y: 1.0 });
     this.node = node;
     this.add(node);
+  }
+
+  setColor(color) {
+    this.node.traverse((child) => {
+      if (!child.isMesh) return;
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach((material) => material.color.set(color));
+    });
+  }
+
+  disposeMaterials() {
+    const materials = new Set();
+    this.node?.traverse((child) => {
+      if (!child.isMesh) return;
+      (Array.isArray(child.material) ? child.material : [child.material])
+        .forEach((material) => materials.add(material));
+    });
+    materials.forEach((material) => material.dispose());
   }
 
   constructor(character) {

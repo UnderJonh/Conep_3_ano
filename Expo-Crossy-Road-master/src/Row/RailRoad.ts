@@ -1,11 +1,10 @@
-import { TweenMax } from "gsap";
+import { TweenLite, TweenMax } from "gsap";
 import { Object3D, Box3 } from "three";
 
 import AudioManager from "../AudioManager";
 import ModelLoader from "../ModelLoader";
 import { groundLevel } from "../GameSettings";
 
-const IS_MUTED = true;
 export default class RailRoad extends Object3D {
   active = false;
 
@@ -87,14 +86,18 @@ export default class RailRoad extends Object3D {
     if (train.mesh.position.x > offset && train.speed > 0) {
       train.mesh.position.x = -offset;
       this.startRingingLight();
-      AudioManager.playAsync(AudioManager.sounds.train.move["0"]);
+      if (Math.abs(player.position.z - this.position.z) < 5 && player.isAlive) {
+        AudioManager.playAsync(AudioManager.sounds.train.move["0"]);
+      }
       if (train === hitByTrain) {
         player.hitByTrain = null;
       }
     } else if (train.mesh.position.x < -offset && train.speed < 0) {
       train.mesh.position.x = offset;
       this.startRingingLight();
-      AudioManager.playAsync(AudioManager.sounds.train.move["0"]);
+      if (Math.abs(player.position.z - this.position.z) < 5 && player.isAlive) {
+        AudioManager.playAsync(AudioManager.sounds.train.move["0"]);
+      }
       if (train === hitByTrain) {
         player.hitByTrain = null;
       }
@@ -144,7 +147,7 @@ export default class RailRoad extends Object3D {
             y: Math.random() * Math.PI - Math.PI / 2,
           });
         }
-        this.onCollide();
+        this.onCollide(train, "feathers", "train");
       }
     }
   };
