@@ -104,7 +104,8 @@ A migration do banco novo já inclui a sensibilidade, autorização por propriet
 | `frontend/src/crossy/` | Adaptação do motor original para navegador. |
 | `frontend/src/lib/credits.ts` | **Edite aqui os créditos e os nomes da equipe.** |
 | `frontend/src/crossy.css` | Estilos do jogo e das janelas. |
-| `esp32/sketch.ino` | Firmware de uma placa. |
+| `esp32/sketch.ino` | Firmware comentado de uma placa. |
+| `esp32/README.md` | Documentação detalhada do firmware, circuito, dados e diagnóstico. |
 
 ## Verificação
 

@@ -1,6 +1,28 @@
 #pragma once
-// Certificados públicos: https://pki.goog/roots.pem (10/09/2026)
-// Atualize se o provedor HTTPS trocar de CA.
+
+/*
+ * AUTORIDADES CERTIFICADORAS CONFIÁVEIS
+ * -------------------------------------
+ * Fonte pública consultada ao montar o pacote:
+ * https://pki.goog/roots.pem (10/09/2026)
+ *
+ * Este arquivo NÃO contém chave privada, senha, token ou certificado exclusivo
+ * da placa. Ele reúne certificados raiz públicos no formato PEM. Durante a
+ * negociação TLS, `WiFiClientSecure` usa essas raízes para verificar se o
+ * certificado apresentado pela API pertence a uma cadeia confiável.
+ *
+ * Detalhes da declaração abaixo:
+ * - `static`: restringe o símbolo a cada unidade de compilação que incluir o
+ *   cabeçalho e evita conflito de ligação;
+ * - `const char`: o conteúdo é texto somente leitura;
+ * - `PROGMEM`: mantém o conjunto grande de certificados na flash do ESP32;
+ * - `R"PEM(... )PEM"`: raw string do C++, apropriada para texto multilinha.
+ *
+ * Não edite os caracteres internos de um bloco BEGIN/END CERTIFICATE: qualquer
+ * alteração invalida aquele certificado. Atualize o pacote se a cadeia usada
+ * pelo provedor HTTPS mudar ou se uma raiz necessária expirar. Manter a hora
+ * correta por SNTP também é indispensável para validar a vigência da cadeia.
+ */
 static const char ROOT_CA[] PROGMEM = R"PEM(
 -----BEGIN CERTIFICATE-----
 MIIFVzCCAz+gAwIBAgINAgPlk28xsBNJiGuiFzANBgkqhkiG9w0BAQwFADBHMQsw
