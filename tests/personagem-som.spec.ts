@@ -28,12 +28,14 @@ test('personalização altera a prévia, preserva a partida e mantém preferênc
   const preview = page.getByLabel('Prévia 3D do personagem');
   await expect(dialog).toBeVisible();
   await expect(page.getByRole('button', { name: 'Galinha', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Brent', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Juwan', exact: true })).toHaveCount(0);
   await expect(page.locator('.character-preview figcaption')).toHaveText('Galinha');
   // Allow the asynchronous preview renderer to produce its first frame.
   await expect.poll(() => preview.evaluate(canvas => (canvas as HTMLCanvasElement).width)).toBeGreaterThan(150);
   const originalPreview = await preview.screenshot();
-  await page.getByRole('button', { name: 'Bacon', exact: true }).click();
-  await expect(page.locator('.character-preview figcaption')).toHaveText('Bacon');
+  await page.getByRole('button', { name: 'Toucinho', exact: true }).click();
+  await expect(page.locator('.character-preview figcaption')).toHaveText('Toucinho');
   expect((await preview.screenshot()).equals(originalPreview)).toBe(false);
   await page.getByRole('button', { name: 'Azul', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Azul', exact: true })).toHaveAttribute('aria-pressed', 'true');
@@ -53,7 +55,7 @@ test('personalização altera a prévia, preserva a partida e mantém preferênc
   await page.reload();
   await expect(page.getByRole('button', { name: 'Mover galinha para frente' })).toBeVisible();
   await page.getByRole('button', { name: 'Personalizar personagem' }).click();
-  await expect(page.getByRole('button', { name: 'Bacon', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Toucinho', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Azul', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByLabel('Sons do jogo')).toHaveValue('0');
   await page.setViewportSize({ width: 390, height: 844 });

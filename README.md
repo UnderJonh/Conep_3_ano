@@ -69,7 +69,7 @@ Esta migration é uma base para banco vazio. Para **refazer do zero o projeto ex
 2. Informe a rede **Wi-Fi 2.4 GHz**, a senha e o GPIO ADC1 do sensor (padrão **34**).
 3. Ajuste a **força mínima da pisada** e clique em **Salvar força mínima**. O padrão é **1,50 V**; o ajuste vai de **0,60 a 3,30 V**.
 4. Clique em **Gerar token da placa** e em **Baixar config.h**.
-5. Coloque `config.h`, `esp32/sketch.ino` e `esp32/certificados.h` na mesma pasta e grave o firmware pela Arduino IDE.
+5. Coloque o `config.h` baixado dentro de `esp32/sketch/`. Essa pasta já contém `sketch.ino` e `certificados.h`; abra `esp32/sketch/sketch.ino` na Arduino IDE e grave o firmware.
 6. Abra o Monitor Serial em **115200 baud**. HTTP 200 confirma os envios. A janela do jogo mostra a tensão e indica **Recebendo sinal do ESP32** quando há leituras recentes.
 7. Feche a configuração e pise forte para começar. Cada pisada completa gera um avanço.
 
@@ -104,8 +104,9 @@ A migration do banco novo já inclui a sensibilidade, autorização por propriet
 | `frontend/src/crossy/` | Adaptação do motor original para navegador. |
 | `frontend/src/lib/credits.ts` | **Edite aqui os créditos e os nomes da equipe.** |
 | `frontend/src/crossy.css` | Estilos do jogo e das janelas. |
-| `esp32/sketch.ino` | Firmware comentado de uma placa. |
-| `esp32/README.md` | Documentação detalhada do firmware, circuito, dados e diagnóstico. |
+| `esp32/sketch/sketch.ino` | Firmware comentado de uma placa. |
+| `esp32/sketch/certificados.h` | Certificados públicos usados na conexão HTTPS. |
+| `esp32/README.md` | Documentação simples do firmware, circuito e diagnóstico. |
 
 ## Verificação
 

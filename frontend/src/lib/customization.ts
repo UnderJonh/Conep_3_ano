@@ -1,11 +1,9 @@
 export const characters = [
   { id: 'chicken', name: 'Galinha' },
-  { id: 'bacon', name: 'Bacon' },
-  { id: 'avocoder', name: 'Avocoder' },
-  { id: 'brent', name: 'Brent' },
-  { id: 'wheeler', name: 'Wheeler' },
-  { id: 'palmer', name: 'Palmer' },
-  { id: 'juwan', name: 'Juwan' },
+  { id: 'bacon', name: 'Toucinho' },
+  { id: 'avocoder', name: 'Abacodificador' },
+  { id: 'wheeler', name: 'Rodinhas' },
+  { id: 'palmer', name: 'Palmeiro' },
 ] as const;
 
 export type CharacterId = typeof characters[number]['id'];

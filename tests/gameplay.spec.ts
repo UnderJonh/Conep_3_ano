@@ -87,16 +87,16 @@ test('sons próprios acompanham personagem e música tem loop e controle indepen
   await page.getByRole('button', { name: 'Personalizar personagem' }).click();
   await page.getByLabel('Música de fundo').fill('0');
   const durations: number[] = [];
-  for (const name of ['Galinha', 'Bacon', 'Avocoder', 'Brent', 'Wheeler', 'Palmer', 'Juwan']) {
+  for (const name of ['Galinha', 'Toucinho', 'Abacodificador', 'Rodinhas', 'Palmeiro']) {
     await page.getByRole('button', { name, exact: true }).click();
     const before = (await effects()).length;
     await page.getByRole('button', { name: 'Testar som', exact: true }).click();
     await expect.poll(async () => (await effects()).length).toBeGreaterThan(before);
     durations.push((await effects()).at(-1).duration);
   }
-  expect(new Set(durations).size).toBe(7);
+  expect(new Set(durations).size).toBe(5);
   // Actual game movement uses the selected profile, not only the preview button.
-  await page.getByRole('button', { name: 'Bacon', exact: true }).click();
+  await page.getByRole('button', { name: 'Toucinho', exact: true }).click();
   await page.getByRole('button', { name: 'Fechar', exact: true }).click();
   const beforeMove = (await effects()).length;
   await page.getByRole('button', { name: 'Mover galinha para frente' }).click();

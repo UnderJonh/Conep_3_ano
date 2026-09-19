@@ -6,6 +6,9 @@ dist/
 esp32/config.local.h
 esp32/config.h
 esp32/certificados.local.h
+esp32/sketch/config.local.h
+esp32/sketch/config.h
+esp32/sketch/certificados.local.h
 supabase/.temp/
 supabase/.branches/
 playwright-report/
