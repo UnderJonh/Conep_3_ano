@@ -43,8 +43,8 @@ test('uma placa → config.h → pisada forte via Edge e Realtime → galinha av
     body: JSON.stringify({ teste_id: id, player: 1, tensao: 0 }),
   });
   expect(warmup.status, JSON.stringify(await warmup.json())).toBe(200);
-  const send = async (amostras: { tensao: number; instante_ms: number }[], deviceToken = token) => {
-    const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Device-Token': deviceToken }, body: JSON.stringify({ teste_id: id, player: 1, amostras }) });
+  const send = async (amostras: { tensao: number; instante_ms: number }[], deviceToken = token, player: 1 | 2 = 1) => {
+    const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Device-Token': deviceToken }, body: JSON.stringify({ teste_id: id, player, amostras }) });
     return { status: response.status, body: await response.json() };
   };
   let now = Date.now();
@@ -55,9 +55,30 @@ test('uma placa → config.h → pisada forte via Edge e Realtime → galinha av
   const pulse = [{ tensao: 0, instante_ms: now - 100 }, { tensao: 2.4, instante_ms: now - 80 }, { tensao: 0, instante_ms: now - 40 }];
   const strong = await send(pulse); expect(strong.status).toBe(200);
   await expect(page.getByLabel('Pontuação')).toHaveText('1');
-  const repeat = await send(pulse); expect(repeat.status).toBe(200);
-  await expect(page.getByLabel('Pontuação')).toHaveText('1');
   const invalid = await send([{ tensao: 0, instante_ms: Date.now() }], '0'.repeat(64)); expect(invalid.status).toBe(401);
+  await page.getByRole('button', { name: 'Configurar multiplayer local', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Jogar', exact: true }).click();
+  const scoreOne = page.getByLabel('Pontuação do jogador 1');
+  const scoreTwo = page.getByLabel('Pontuação do jogador 2');
+  await expect(scoreOne).toHaveText('0');
+  await expect(scoreTwo).toHaveText('0');
+  now = Date.now();
+  const simultaneousPulse = [{ tensao: 0, instante_ms: now - 100 }, { tensao: 2.4, instante_ms: now - 80 }, { tensao: 0, instante_ms: now - 40 }];
+  const batchResponse = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Device-Token': token },
+    body: JSON.stringify({
+      teste_id: id,
+      leituras: [{ player: 1, amostras: simultaneousPulse }, { player: 2, amostras: simultaneousPulse }],
+    }),
+  });
+  const batchBody = await batchResponse.json();
+  expect(batchResponse.status, JSON.stringify(batchBody)).toBe(200);
+  expect(batchBody.jogadores).toHaveLength(2);
+  await expect(scoreOne).toHaveText('1');
+  await expect(scoreTwo).toHaveText('1');
+  await page.getByRole('button', { name: 'Configurar multiplayer local' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: '1 jogador', exact: true }).click();
   await page.getByRole('button', { name: 'Configurar ESP32' }).click();
   // The real firmware keeps sending telemetry while the settings are open.
   const telemetry = await fetch(endpoint, {

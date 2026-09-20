@@ -37,10 +37,12 @@ test('multiplayer local compartilha o mundo, separa placares e usa Espaço e Ent
   await expect(page.getByText('ESPAÇO', { exact: true })).toBeVisible();
   await expect(page.getByText('ENTER', { exact: true })).toBeVisible();
 
-  await page.keyboard.press('Space');
-  await expect(scoreOne).toHaveText('1');
-  await expect(scoreTwo).toHaveText('0');
-  await page.keyboard.press('Enter');
+  // Keep both keys down in the same movement window. The two players must not
+  // share a global movement lock.
+  await page.keyboard.down('Space');
+  await page.keyboard.down('Enter');
+  await page.keyboard.up('Space');
+  await page.keyboard.up('Enter');
   await expect(scoreOne).toHaveText('1');
   await expect(scoreTwo).toHaveText('1');
   await page.keyboard.press('Enter');

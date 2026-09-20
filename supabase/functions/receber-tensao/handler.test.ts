@@ -1,4 +1,4 @@
-import { criarHandler, validarLeitura } from './handler.ts';
+import { criarHandler, validarEntrada, validarLeitura } from './handler.ts';
 import type { Registrar } from './handler.ts';
 
 function equal(actual: unknown, expected: unknown) {
@@ -34,7 +34,7 @@ Deno.test('nega token ausente e nunca consulta banco em payload inválido', asyn
   const handler = criarHandler(() => { throw new Error('Não deveria chamar o banco'); });
   equal((await handler(request(leitura, ''))).status, 401);
   equal((await handler(request({ ...leitura, player: 9 }))).status, 400);
-  equal((await handler(request({ ...leitura, teste_id: 'a'.repeat(5000) }))).status, 413);
+  equal((await handler(request({ ...leitura, teste_id: 'a'.repeat(9000) }))).status, 413);
   equal((await handler(new Request('http://localhost', { method: 'POST', headers: { 'x-device-token': 'a'.repeat(64), 'content-type': 'application/json' }, body: '{' }))).status, 400);
 });
 
@@ -64,4 +64,30 @@ Deno.test('trata CORS, método, tipo de conteúdo e indisponibilidade', async ()
   equal((await handler(new Request('http://localhost', { method: 'POST', headers: { 'x-device-token': 'a'.repeat(64) }, body: 'texto' }))).status, 415);
   const failed = criarHandler(() => { throw new Error('offline'); });
   equal((await failed(request(leitura))).status, 503);
+});
+
+Deno.test('aceita os dois jogadores no mesmo pedido e rejeita jogador duplicado', async () => {
+  const samples = [{ tensao: 0, instante_ms: 1700000000000 }, { tensao: 2.8, instante_ms: 1700000000020 }];
+  const batch = {
+    teste_id: leitura.teste_id,
+    leituras: [{ player: 1 as const, amostras: samples }, { player: 2 as const, amostras: samples }],
+  };
+  equal(validarEntrada(batch), true);
+  equal(validarEntrada({ ...batch, leituras: [batch.leituras[0], batch.leituras[0]] }), false);
+  const players: number[] = [];
+  const handler = criarHandler(async (value) => {
+    players.push(value.player);
+    return { data: { ok: true, teste_id: value.teste_id, player: value.player, comandos: 1 }, error: null };
+  });
+  const response = await handler(request(batch));
+  equal(response.status, 200);
+  equal(players, [1, 2]);
+  equal(await response.json(), {
+    ok: true,
+    teste_id: leitura.teste_id,
+    jogadores: [
+      { ok: true, teste_id: leitura.teste_id, player: 1, comandos: 1 },
+      { ok: true, teste_id: leitura.teste_id, player: 2, comandos: 1 },
+    ],
+  });
 });

@@ -25,17 +25,23 @@ Nunca envie mais de **3,3 V** a um GPIO. Ao trocar os pinos, escolha duas entrad
 1. O ESP32 conecta ao Wi-Fi e sincroniza o relógio.
 2. Uma tarefa lê os dois sensores a cada 20 ms.
 3. As leituras de cada jogador ficam em uma fila independente com 100 posições.
-4. A cada 200 ms, o firmware prepara e envia um lote por jogador.
-5. Os lotes usam o mesmo token da placa e identificam o jogador com `player: 1` ou `player: 2`.
+4. A cada 200 ms, o firmware prepara os dois lotes e os envia na mesma requisição HTTPS.
+5. O pedido usa o token da placa uma única vez e mantém as amostras de cada jogador separadas.
 
 Exemplo do conteúdo enviado:
 
 ```json
 {
   "teste_id": "UUID_DA_SESSAO",
-  "player": 2,
-  "amostras": [
-    { "tensao": 1.742, "instante_ms": 1789823456789 }
+  "leituras": [
+    {
+      "player": 1,
+      "amostras": [{ "tensao": 1.742, "instante_ms": 1789823456789 }]
+    },
+    {
+      "player": 2,
+      "amostras": [{ "tensao": 2.104, "instante_ms": 1789823456789 }]
+    }
   ]
 }
 ```

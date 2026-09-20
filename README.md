@@ -99,7 +99,7 @@ A tensão é usada como aproximação da força, não como uma medida calibrada 
 
 ## Conexão e arquivos
 
-O ESP captura os dois sensores a cada **20 ms** e envia lotes HTTPS a cada **200 ms**, com `X-Device-Token`, para a Edge Function `receber-tensao`. O payload conserva `teste_id`, `player: 1` ou `player: 2` e `amostras` com `tensao` / `instante_ms`. O servidor mantém debounce, replay e contador independentes em `infos_player_1` e `infos_player_2`; o navegador recebe as atualizações pelo Supabase Realtime.
+O ESP captura os dois sensores a cada **20 ms** e envia os dois lotes juntos, em uma única requisição HTTPS a cada **200 ms**, com `X-Device-Token`, para a Edge Function `receber-tensao`. Cada item conserva `player: 1` ou `player: 2` e suas `amostras` com `tensao` / `instante_ms`. O servidor mantém debounce, replay e contador independentes em `infos_player_1` e `infos_player_2`; o navegador recebe as atualizações pelo Supabase Realtime.
 
 A migration já inclui a sensibilidade, autorização por proprietário, registro de amostras e publicação Realtime de `public.testes`. Há uma placa física por conexão, com um token compartilhado pelos dois pinos.
 

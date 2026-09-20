@@ -414,19 +414,20 @@ void setup() {
 // LOOP
 // ======================================================
 
-bool enviarAmostras(int player, QueueHandle_t filaPlayer) {
-  String payload;
-  payload.reserve(3500);
-  payload =
-    String("{\"teste_id\":\"") +
-    TESTE_ID +
-    "\",\"player\":" +
-    String(player) +
-    ",\"amostras\":[";
-
+int adicionarAmostras(
+  String& payload,
+  int player,
+  QueueHandle_t filaPlayer,
+  bool& primeira,
+  float& tensao
+) {
+  const unsigned int inicio = payload.length();
+  if (!primeira) {
+    payload += ',';
+  }
+  payload += String("{\"player\":") + String(player) + ",\"amostras\":[";
   Amostra a;
   int quantidade = 0;
-  float tensao = 0.0f;
   const int64_t corte = instanteMs() - 2000;
 
   while (
@@ -455,6 +456,26 @@ bool enviarAmostras(int player, QueueHandle_t filaPlayer) {
   }
 
   if (quantidade == 0) {
+    payload.remove(inicio);
+    return 0;
+  }
+  payload += "]}";
+  primeira = false;
+  return quantidade;
+}
+
+bool enviarAmostras() {
+  String payload;
+  payload.reserve(7000);
+  payload = String("{\"teste_id\":\"") + TESTE_ID + "\",\"leituras\":[";
+
+  bool primeira = true;
+  float tensoes[2] = { 0.0f, 0.0f };
+  const int quantidades[2] = {
+    adicionarAmostras(payload, 1, filas[0], primeira, tensoes[0]),
+    adicionarAmostras(payload, 2, filas[1], primeira, tensoes[1])
+  };
+  if (primeira) {
     return false;
   }
   payload += "]}";
@@ -473,18 +494,19 @@ bool enviarAmostras(int player, QueueHandle_t filaPlayer) {
     http.addHeader("X-Device-Token", DEVICE_TOKEN);
     codigo = http.POST(payload);
     if (codigo >= 400) {
-      Serial.printf("[HTTP] Jogador %d: ", player);
+      Serial.print("[HTTP] Lote dos jogadores: ");
       Serial.println(http.getString());
     }
     http.end();
   }
 
   Serial.printf(
-    "Jogador: %d | Tensao: %.3f V | HTTP: %d | Amostras: %d | RSSI: %d dBm\n",
-    player,
-    tensao,
+    "Jogadores: 1+2 | Tensoes: %.3f / %.3f V | HTTP: %d | Amostras: %d / %d | RSSI: %d dBm\n",
+    tensoes[0],
+    tensoes[1],
     codigo,
-    quantidade,
+    quantidades[0],
+    quantidades[1],
     WiFi.RSSI()
   );
   return codigo >= 200 && codigo < 300;
@@ -539,6 +561,5 @@ void loop() {
   }
 
   ultimoEnvio = agora;
-  enviarAmostras(1, filas[0]);
-  enviarAmostras(2, filas[1]);
+  enviarAmostras();
 }
