@@ -569,16 +569,6 @@ label input,label select {
   white-space:nowrap;
   border:0
 }
-.open-local-setup {
-  pointer-events:auto;
-  margin-top:20px;
-  padding:12px 22px;
-  color:#263222;
-  background:#fffef3;
-  border-color:#334629;
-  font-size:15px;
-  text-shadow:none
-}
 .crossy-app.mode-local::after {
   content:"";
   position:absolute;

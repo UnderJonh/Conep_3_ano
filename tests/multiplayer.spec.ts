@@ -14,7 +14,11 @@ test('multiplayer local compartilha o mundo, separa placares e usa Espaço e Ent
 
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Multiplayer local', exact: true }).click();
+  await expect(page.getByAltText('Crossy Road')).toBeVisible();
+  await expect(page.getByText('Pise forte para iniciar', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Multiplayer local', exact: true })).toHaveCount(0);
+  await page.screenshot({ path: join(directory, 'multiplayer-home-without-button.png') });
+  await page.getByRole('button', { name: 'Configurar multiplayer local', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('heading', { name: 'Escolha o modo' })).toBeVisible();
@@ -55,7 +59,7 @@ test('multiplayer local compartilha o mundo, separa placares e usa Espaço e Ent
   await dialog.getByRole('button', { name: '1 jogador', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Mover galinha para frente' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Multiplayer local', exact: true }).click();
+  await page.getByRole('button', { name: 'Configurar multiplayer local', exact: true }).click();
   await dialog.getByRole('button', { name: 'Jogar', exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(scoreOne).toBeVisible();

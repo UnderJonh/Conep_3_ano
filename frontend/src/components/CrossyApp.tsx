@@ -195,7 +195,7 @@ export default function CrossyApp() {
     <canvas ref={canvas} className="game-canvas" aria-label="Cenário 3D do Crossy Road" />
     {ready && mode === 'single' && state !== 'over' ? <button className="game-touch" aria-label="Mover galinha para frente" onClick={forward} /> : null}
     {ready && mode === 'local' ? <div className="local-touch-controls"><button aria-label="Mover jogador 1 para frente" onClick={() => forwardPlayer(1)} /><button aria-label="Mover jogador 2 para frente" onClick={() => forwardPlayer(2)} /></div> : null}
-    {ready && mode === 'single' && state === 'home' ? <div className="home-overlay"><img src={title} alt="Crossy Road" /><p>Pise forte para iniciar</p><button className="open-local-setup" onClick={() => setModal('local')}>Multiplayer local</button></div> : null}
+    {ready && mode === 'single' && state === 'home' ? <div className="home-overlay"><img src={title} alt="Crossy Road" /><p>Pise forte para iniciar</p></div> : null}
     {ready && mode === 'single' && state !== 'home' ? <output className="crossy-score" aria-label="Pontuação">{score}</output> : null}
     {ready && mode === 'local' ? <div className="local-hud" aria-label="Placar multiplayer local">
       {([1, 2] as const).map(player => <section key={player} className={`local-hud-player player-${player}`}><span>Jogador {player}</span><output aria-label={`Pontuação do jogador ${player}`}>{localScores[player - 1]}</output><kbd>{player === 1 ? 'ESPAÇO' : 'ENTER'}</kbd>{localStates[player - 1] === 'home' ? <small>Pressione para iniciar</small> : null}</section>)}

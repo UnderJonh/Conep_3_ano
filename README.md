@@ -17,7 +17,7 @@ Para usar o ESP, configure na raiz `.env.local` com `VITE_SUPABASE_URL` e `VITE_
 
 ## Multiplayer local
 
-Clique em **Multiplayer local** na abertura ou no ícone de duas pessoas. Antes da partida, cada jogador escolhe seu personagem e sua cor. A tela é dividida em duas câmeras do mesmo mundo 3D: os veículos, rios e faixas são compartilhados, e um jogador consegue ver o outro quando estão próximos.
+Clique no ícone de duas pessoas no canto inferior da tela. Antes da partida, cada jogador escolhe seu personagem e sua cor. A tela é dividida em duas câmeras do mesmo mundo 3D: os veículos, rios e faixas são compartilhados, e um jogador consegue ver o outro quando estão próximos.
 
 - Jogador 1: **Espaço** ou sensor no pino configurado para o jogador 1.
 - Jogador 2: **Enter** ou sensor no pino configurado para o jogador 2.
