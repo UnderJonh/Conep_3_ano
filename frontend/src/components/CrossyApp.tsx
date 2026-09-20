@@ -4,13 +4,14 @@ import { useCrossyEsp } from '../hooks/useCrossyEsp';
 import { credits } from '../lib/credits';
 import { loadPlayerTwoAppearance, loadPreferences, savePlayerTwoAppearance, savePreferences } from '../lib/customization';
 import type { Appearance } from '../lib/customization';
-import { setGameVolume, setMusicVolume, unlockAudio } from '../crossy/audio';
+import { setGameVolume, setMusicStage, setMusicVolume, unlockAudio } from '../crossy/audio';
 import { CrossyEspSetup } from './CrossyEspSetup';
 import { CharacterCustomization } from './CharacterCustomization';
 import { LocalMultiplayerSetup } from './LocalMultiplayerSetup';
 import { PlayerRanking } from './PlayerRanking';
 import { useCrossyRanking } from '../hooks/useCrossyRanking';
 import { playerNameLimit } from '../lib/ranking';
+import { recordProgress } from '../lib/recordProgress';
 import { errorMessage } from '../lib/supabase';
 import title from '../../../Expo-Crossy-Road-master/assets/images/title.png';
 
@@ -27,6 +28,7 @@ export default function CrossyApp() {
   const [loadError, setLoadError] = useState('');
   const [score, setScore] = useState(0);
   const scoreRef = useRef(0);
+  const runRecordRef = useRef(0);
   const [state, setState] = useState<PlayState>('home');
   const [mode, setMode] = useState<GameMode>('single');
   const [localScores, setLocalScores] = useState<[number, number]>([0, 0]);
@@ -67,6 +69,8 @@ export default function CrossyApp() {
     setState('home');
     setScore(0);
     scoreRef.current = 0;
+    runRecordRef.current = highScoreRef.current;
+    setMusicStage('normal');
     setLocalScores([0, 0]);
     setLocalStates(['home', 'home']);
 
@@ -85,10 +89,22 @@ export default function CrossyApp() {
         }, [preferencesRef.current, playerTwoAppearanceRef.current]);
       }
       return module.createGame(canvas.current!, {
-        onScore: value => { if (alive) { scoreRef.current = value; setScore(value); } },
+        onScore: value => {
+          if (!alive) return;
+          scoreRef.current = value;
+          setScore(value);
+          const progress = recordProgress(value, runRecordRef.current);
+          setMusicStage(progress.stage);
+          (game.current as GameController | null)?.setCrowned?.(progress.crowned);
+        },
         onState: value => {
           if (!alive) return;
           setState(value);
+          if (value === 'playing' && scoreRef.current === 0) {
+            runRecordRef.current = highScoreRef.current;
+            setMusicStage('normal');
+            (game.current as GameController | null)?.setCrowned?.(false);
+          }
           if (value === 'over' && scoreRef.current > highScoreRef.current) {
             setRecord({ id: crypto.randomUUID(), score: scoreRef.current });
             setPlayerName('');

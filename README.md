@@ -21,6 +21,8 @@ Clique no ícone de duas pessoas no canto inferior da tela. Antes da partida, ca
 
 - Jogador 1: **Espaço** ou sensor no pino configurado para o jogador 1.
 - Jogador 2: **Enter** ou sensor no pino configurado para o jogador 2.
+
+No modo de um jogador, a música muda para uma progressão de expectativa ao alcançar 50% do recorde atual. Ao ultrapassar o recorde, entra a progressão vitoriosa e o personagem recebe uma coroa. Esses efeitos não são usados no multiplayer local.
 - Cada metade tem placar e estado de partida independentes.
 - Em telas estreitas, as câmeras ficam uma acima da outra.
 

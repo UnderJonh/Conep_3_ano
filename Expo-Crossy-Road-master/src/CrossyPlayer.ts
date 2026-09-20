@@ -1,4 +1,11 @@
-import { Group } from "three";
+import {
+  BoxGeometry,
+  ConeGeometry,
+  CylinderGeometry,
+  Group,
+  Mesh,
+  MeshStandardMaterial,
+} from "three";
 import { TimelineMax, TweenMax, TweenLite, Bounce, Power1 } from "gsap";
 import { utils } from "expo-three";
 import {
@@ -13,6 +20,36 @@ import ModelLoader from "./ModelLoader";
 
 const normalizeAngle = (angle) => {
   return Math.atan2(Math.sin(angle), Math.cos(angle));
+};
+
+const createRecordCrown = () => {
+  const crown = new Group();
+  crown.name = "record-crown";
+  crown.position.set(0, 1.10, 0);
+  crown.scale.setScalar(0.78);
+  const gold = new MeshStandardMaterial({
+    color: 0xffcf33,
+    emissive: 0x3a2500,
+    metalness: 0.38,
+    roughness: 0.32,
+  });
+  const red = new MeshStandardMaterial({ color: 0xe63b2e, emissive: 0x350500 });
+  const band = new Mesh(new CylinderGeometry(0.27, 0.29, 0.16, 8), gold);
+  band.position.y = -0.04;
+  crown.add(band);
+  for (let index = 0; index < 5; index++) {
+    const angle = (index / 5) * Math.PI * 2;
+    const spike = new Mesh(new ConeGeometry(0.085, 0.30, 4), gold);
+    spike.position.set(Math.cos(angle) * 0.20, 0.16, Math.sin(angle) * 0.20);
+    spike.rotation.y = -angle;
+    crown.add(spike);
+  }
+  const jewel = new Mesh(new BoxGeometry(0.09, 0.09, 0.035), red);
+  jewel.position.set(0, -0.035, 0.275);
+  jewel.rotation.z = Math.PI / 4;
+  crown.add(jewel);
+  crown.visible = false;
+  return crown;
 };
 
 class PlayerScaleAnimation extends TimelineMax {
@@ -82,6 +119,7 @@ export default class CrossyPlayer extends Group {
   animations = [];
 
   _character;
+  crown;
 
   setCharacter(character) {
     if (this._character === character) return;
@@ -113,6 +151,27 @@ export default class CrossyPlayer extends Group {
       const materials = Array.isArray(child.material) ? child.material : [child.material];
       materials.forEach((material) => material.color.set(color));
     });
+  }
+
+  setCrowned(value) {
+    if (!this.crown && !value) return;
+    if (!this.crown) {
+      this.crown = createRecordCrown();
+      this.add(this.crown);
+    }
+    this.crown.visible = value;
+  }
+
+  disposeCrown() {
+    if (!this.crown) return;
+    this.crown.traverse((child) => {
+      if (!child.isMesh) return;
+      child.geometry.dispose();
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach((material) => material.dispose());
+    });
+    this.remove(this.crown);
+    this.crown = null;
   }
 
   disposeMaterials() {

@@ -54,6 +54,8 @@ export async function createGame(canvas, callbacks, appearance = { character: 'c
       pending = 0;
       pauseGameAudio(true); pauseGameAudio(paused);
       engine._hero.stopAnimations(); engine._hero.stopIdle();
+      engine._hero.setCrowned(false);
+      canvas.dataset.crowned = 'false';
       state = 'home'; engine.init(); callbacks.onState(state);
     },
     pause(value) {
@@ -68,14 +70,22 @@ export async function createGame(canvas, callbacks, appearance = { character: 'c
       engine._hero.setColor(value.color);
       engine.renderer.render(engine.scene, engine.camera);
     },
+    setCrowned(value) {
+      if (disposed) return;
+      engine._hero.setCrowned(value);
+      canvas.dataset.crowned = String(value);
+      engine.renderer.render(engine.scene, engine.camera);
+    },
     resize: engine.updateScale,
     dispose() {
       disposed = true; engine.pause(); engine._hero.stopIdle(); engine._hero.stopAnimations();
+      delete canvas.dataset.crowned;
       engine.scene.traverse(node => {
         TweenMax.killTweensOf(node.position); TweenMax.killTweensOf(node.rotation); TweenMax.killTweensOf(node.scale);
       });
       engine.renderer.dispose();
       engine._hero.disposeMaterials();
+      engine._hero.disposeCrown();
       AudioManager.dispose(); disposeAudio();
     },
   };
@@ -256,7 +266,7 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
     dispose() {
       disposed = true;
       cancelAnimationFrame(raf);
-      players.forEach(player => { player.stopIdle(); player.stopAnimations(); player.disposeMaterials(); });
+      players.forEach(player => { player.stopIdle(); player.stopAnimations(); player.disposeMaterials(); player.disposeCrown(); });
       engine.scene.traverse(node => {
         TweenMax.killTweensOf(node.position); TweenMax.killTweensOf(node.rotation); TweenMax.killTweensOf(node.scale);
       });
@@ -294,6 +304,7 @@ export async function createCharacterPreview(canvas, appearance) {
   const observer = new ResizeObserver(render); observer.observe(canvas); render();
   return {
     setAppearance(value) { hero.setCharacter(value.character); hero.setColor(value.color); render(); },
-    dispose() { observer.disconnect(); hero.disposeMaterials(); renderer.dispose(); renderer.forceContextLoss(); },
+    setCrowned(value) { hero.setCrowned(value); render(); },
+    dispose() { observer.disconnect(); hero.disposeMaterials(); hero.disposeCrown(); renderer.dispose(); renderer.forceContextLoss(); },
   };
 }

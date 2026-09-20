@@ -1,10 +1,15 @@
 import theme from '../../../Expo-Crossy-Road-master/assets/audio/conep-theme.wav?url';
+import nearRecord from '../../../Expo-Crossy-Road-master/assets/audio/conep-near.wav?url';
+import victory from '../../../Expo-Crossy-Road-master/assets/audio/conep-victory.wav?url';
+
+const musicTracks = { normal: theme, near: nearRecord, victory };
 
 let context;
 let output;
 let musicOutput;
 let musicVolume = .28;
 let backgroundPlayer;
+let musicStage = 'normal';
 let volume = .6;
 let paused = false;
 let revision = 0;
@@ -47,9 +52,17 @@ export function setMusicVolume(value) {
   else syncMusic();
 }
 
+export function setMusicStage(value) {
+  if (!(value in musicTracks) || value === musicStage) return;
+  musicStage = value;
+  backgroundPlayer?.remove();
+  backgroundPlayer = undefined;
+  syncMusic();
+}
+
 function syncMusic() {
   if (!musicVolume || paused || context?.state !== 'running') return;
-  backgroundPlayer ??= createAudioPlayer(theme, { music: true, loop: true });
+  backgroundPlayer ??= createAudioPlayer(musicTracks[musicStage], { music: true, loop: true });
   if (!backgroundPlayer.playing) void backgroundPlayer.play();
 }
 
@@ -127,7 +140,7 @@ export async function playAudioSample(resource) {
 export async function playMusicSample() {
   unlockAudio();
   if (context.state === 'suspended') await context.resume().catch(() => {});
-  backgroundPlayer ??= createAudioPlayer(theme, { music: true, loop: true });
+  backgroundPlayer ??= createAudioPlayer(musicTracks[musicStage], { music: true, loop: true });
   if (!backgroundPlayer.playing) await backgroundPlayer.play(true);
 }
 
@@ -138,4 +151,5 @@ export function disposeAudio() {
   context = undefined; output = undefined; musicOutput = undefined; buffers.clear(); paused = false;
   backgroundPlayer = undefined;
   samplePlayer = undefined;
+  musicStage = 'normal';
 }
