@@ -17,7 +17,7 @@ Deno.test('valida UUID, player estrito, tensão finita e propriedades permitidas
     equal(validarLeitura(value), false);
   }
   equal(validarLeitura({ ...leitura, tensao: 0 }), true);
-  equal(validarLeitura({ ...leitura, player: 2, tensao: 3.6 }), false);
+  equal(validarLeitura({ ...leitura, player: 2, tensao: 3.6 }), true);
   equal(validarLeitura({ ...leitura, tensao: 3.6 }), true);
 });
 Deno.test('retorna leitura e envia só hash SHA-256 ao banco', async () => {

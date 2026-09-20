@@ -4,7 +4,7 @@ export type PlayerInfo = {
   [key: string]: Json | undefined;
 };
 export type Teste = {
-  id: string; nome: string; owner_id: string; infos_player_1: PlayerInfo;
+  id: string; nome: string; owner_id: string; infos_player_1: PlayerInfo; infos_player_2: PlayerInfo;
   revisao: number; limiar_forte: number; created_at: string; updated_at: string;
 };
 export type RankingEntry = { id: string; nome: string; pontos: number; created_at: string };

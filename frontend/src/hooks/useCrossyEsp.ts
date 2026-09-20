@@ -17,64 +17,76 @@ async function prepareBoard() {
   return configured.data;
 }
 
-export function useCrossyEsp(forward: () => void) {
+export function useCrossyEsp(forwardOne: () => void, forwardTwo: () => void = () => {}) {
   const [teste, setTeste] = useState<Teste | null>(null);
   const [error, setError] = useState(configError ?? '');
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const receive = useRef(forward);
-  receive.current = forward;
+  const receive = useRef<[() => void, () => void]>([forwardOne, forwardTwo]);
+  receive.current = [forwardOne, forwardTwo];
   const enabled = useRef((() => { try { return localStorage.getItem('crossy:esp-enabled:v1') === 'true'; } catch { return false; } })());
   const enable = useCallback(() => {
     enabled.current = true;
     try { localStorage.setItem('crossy:esp-enabled:v1', 'true'); } catch { /* The connection still works without storage. */ }
     setAttempt(value => value + 1);
   }, []);
+
   useEffect(() => {
     if (!enabled.current || configError) return;
     let alive = true;
     let cleanup = () => {};
-    setConnecting(true); setError('');
+    setConnecting(true);
+    setError('');
     preparing ??= prepareBoard().catch(err => { preparing = undefined; throw err; });
     void preparing.then(board => {
       if (!alive) return;
       const db = client();
       let revision = -1;
-      let commands: number | null = null;
+      let commands: [number | null, number | null] = [null, null];
       function accept(next: Teste, baseline = false) {
         if (!alive || next.revisao < revision) return;
-        const count = Number(next.infos_player_1.comandos ?? 0);
-        const previous = commands;
-        commands = count; revision = next.revisao;
+        const infos = [next.infos_player_1, next.infos_player_2];
+        infos.forEach((info, index) => {
+          const count = Number(info?.comandos ?? 0);
+          const previous = commands[index];
+          commands[index] = count;
+          const at = Date.parse(String(info?.comando_em ?? ''));
+          if (!baseline && previous !== null && count > previous && Date.now() - at < 5000 && document.visibilityState === 'visible') {
+            for (let command = 0; command < Math.min(10, count - previous); command++) receive.current[index]();
+          }
+        });
+        revision = next.revisao;
         setTeste(next);
-        const at = Date.parse(String(next.infos_player_1.comando_em ?? ''));
-        if (!baseline && previous !== null && count > previous && Date.now() - at < 5000 && document.visibilityState === 'visible') {
-          for (let index = 0; index < Math.min(10, count - previous); index++) receive.current();
-        }
       }
       accept(board, true);
       async function snapshot() {
-        commands = null;
+        commands = [null, null];
         const result = await db.from('testes').select('*').eq('id', board.id).single();
         if (!alive) return false;
         if (result.error) { setError(errorMessage(result.error)); return false; }
-        accept(result.data, true); setError(''); return true;
+        accept(result.data, true);
+        setError('');
+        return true;
       }
       const channel = db.channel(`crossy:${board.id}`).on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'testes', filter: `id=eq.${board.id}`,
       }, payload => accept(payload.new as Teste)).subscribe(status => {
         if (!alive) return;
         setConnected(false);
-        if (status === 'SUBSCRIBED') void snapshot().then(ready => { if (alive) setConnected(ready); });
-        else { commands = null; if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setError('Conexão interrompida. Tentando reconectar ao ESP.'); }
+        if (status === 'SUBSCRIBED') void snapshot().then(isReady => { if (alive) setConnected(isReady); });
+        else {
+          commands = [null, null];
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setError('Conexão interrompida. Tentando reconectar ao ESP.');
+        }
       });
       const resume = () => { if (document.visibilityState === 'visible') void snapshot(); };
       document.addEventListener('visibilitychange', resume);
       window.addEventListener('online', resume);
       cleanup = () => {
         void db.removeChannel(channel);
-        document.removeEventListener('visibilitychange', resume); window.removeEventListener('online', resume);
+        document.removeEventListener('visibilitychange', resume);
+        window.removeEventListener('online', resume);
       };
       setConnecting(false);
     }).catch(err => { if (alive) { setError(errorMessage(err)); setConnecting(false); } });

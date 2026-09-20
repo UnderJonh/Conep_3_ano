@@ -196,14 +196,17 @@ export default class Water extends Object3D {
     if (!this.active) {
       return;
     }
-    this.entities.map((entity) => this.move({ dt, player, entity }));
+    const players = Array.isArray(player) ? player : [player];
+    this.entities.map((entity) => this.move({ dt, entity }));
 
-    if (!player.moving && !player.ridingOn) {
-      this.entities.map((entity) =>
-        this.shouldCheckCollision({ dt, player, entity })
-      );
-      this.shouldCheckHazardCollision({ player });
-    }
+    players.forEach((currentPlayer) => {
+      if (!currentPlayer.moving && !currentPlayer.ridingOn) {
+        this.entities.map((entity) =>
+          this.shouldCheckCollision({ dt, player: currentPlayer, entity })
+        );
+        this.shouldCheckHazardCollision({ player: currentPlayer });
+      }
+    });
   };
 
   move = ({ dt, player, entity }) => {
@@ -240,7 +243,7 @@ export default class Water extends Object3D {
     if (Math.round(player.position.z) === this.position.z && !player.moving) {
       if (!player.ridingOn) {
         if (player.isAlive) {
-          this.onCollide(this.floor, "water");
+          this.onCollide(this.floor, "water", undefined, player);
         } else {
           let y = this.getPlayerSunkenPosition();
           this.sineCount += this.sineInc;

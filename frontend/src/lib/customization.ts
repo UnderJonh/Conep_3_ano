@@ -11,6 +11,8 @@ export type Appearance = { character: CharacterId; color: string };
 export type GamePreferences = Appearance & { volume: number; musicVolume: number };
 export const defaultPreferences: GamePreferences = { character: 'chicken', color: '#ffffff', volume: 60, musicVolume: 28 };
 const storageKey = 'crossy:customization:v1';
+const playerTwoStorageKey = 'crossy:player-two:v1';
+export const defaultPlayerTwoAppearance: Appearance = { character: 'bacon', color: '#cfb0ff' };
 
 export function loadPreferences(): GamePreferences {
   try {
@@ -26,4 +28,18 @@ export function loadPreferences(): GamePreferences {
 
 export function savePreferences(preferences: GamePreferences) {
   try { localStorage.setItem(storageKey, JSON.stringify(preferences)); } catch { /* Storage may be disabled. */ }
+}
+
+export function loadPlayerTwoAppearance(): Appearance {
+  try {
+    const saved = JSON.parse(localStorage.getItem(playerTwoStorageKey) ?? 'null') as Partial<Appearance> | null;
+    return {
+      character: characters.some(character => character.id === saved?.character) ? saved!.character! : defaultPlayerTwoAppearance.character,
+      color: typeof saved?.color === 'string' && /^#[\da-f]{6}$/i.test(saved.color) ? saved.color : defaultPlayerTwoAppearance.color,
+    };
+  } catch { return { ...defaultPlayerTwoAppearance }; }
+}
+
+export function savePlayerTwoAppearance(appearance: Appearance) {
+  try { localStorage.setItem(playerTwoStorageKey, JSON.stringify(appearance)); } catch { /* Storage may be disabled. */ }
 }

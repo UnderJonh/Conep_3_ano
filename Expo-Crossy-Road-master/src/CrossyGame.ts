@@ -227,14 +227,15 @@ export class CrossyGameMap extends GameMap {
   }
 
   tick(dt, hero) {
+    const players = Array.isArray(hero) ? hero : [hero];
     for (const railRoad of this.railRoads.items) {
-      railRoad.update(dt, hero);
+      railRoad.update(dt, players);
     }
     for (const road of this.roads.items) {
-      road.update(dt, hero);
+      road.update(dt, players);
     }
     for (const water of this.water.items) {
-      water.update(dt, hero);
+      water.update(dt, players);
     }
   }
 
@@ -271,8 +272,8 @@ export class CrossyGameMap extends GameMap {
     return row;
   };
 
-  ensureRowsAhead = (position) => {
-    this.firstRetainedRow = Math.max(0, Math.floor(position) - rowsBehind);
+  ensureRowsAhead = (position, retainFrom = position) => {
+    this.firstRetainedRow = Math.max(0, Math.floor(retainFrom) - rowsBehind);
     for (const index of Object.keys(this.floorMap)) {
       if (Number(index) >= this.firstRetainedRow) continue;
       this.floorMap[index].entity.active = false;

@@ -55,7 +55,8 @@ do $$ begin
       '20260910151138', '20260911020407', '20260911100422', '20260917140736'
     );
     insert into supabase_migrations.schema_migrations(version, name, statements)
-      values ('20260917155448', 'crossy_game_from_scratch', array[]::text[])
+      values ('20260917155448', 'crossy_game_from_scratch', array[]::text[]),
+        ('20260920154931', 'local_multiplayer', array[]::text[])
       on conflict (version) do update set name = excluded.name;
   end if;
 end $$;

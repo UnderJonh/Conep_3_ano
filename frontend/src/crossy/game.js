@@ -81,6 +81,192 @@ export async function createGame(canvas, callbacks, appearance = { character: 'c
   };
 }
 
+export async function createLocalMultiplayerGame(canvas, callbacks, appearances) {
+  models ??= ModelLoader.loadModels();
+  await models;
+  const gl = canvas.getContext('webgl2', { antialias: true });
+  if (!gl) throw new Error('Este navegador precisa de WebGL 2 para abrir o jogo.');
+  gl.endFrameEXP = () => {};
+
+  const engine = new Engine();
+  const states = ['home', 'home'];
+  const pending = [0, 0];
+  const viewOffsets = [{ x: 0, z: 0 }, { x: 0, z: 0 }];
+  let paused = false;
+  let disposed = false;
+  let raf = 0;
+
+  engine.setupGame(appearances[0].character);
+  engine._hero.setColor(appearances[0].color);
+  const secondHero = new CrossyPlayer(appearances[1].character);
+  secondHero.setColor(appearances[1].color);
+  engine.scene.world.add(secondHero);
+  const players = [engine._hero, secondHero];
+
+  const secondDriver = new Engine();
+  secondDriver.scene = engine.scene;
+  secondDriver.gameMap = engine.gameMap;
+  secondDriver._hero = secondHero;
+  secondDriver.camera = engine.camera;
+  secondDriver.onUpdateScore = value => callbacks.onScore(2, value);
+  secondDriver._isGameStateEnded = () => states[1] !== 'playing' || paused || disposed;
+  const drivers = [engine, secondDriver];
+
+  engine.onUpdateScore = value => callbacks.onScore(1, value);
+  engine.onGameInit = () => {
+    callbacks.onScore(1, 0);
+    callbacks.onScore(2, 0);
+  };
+  engine.onGameReady = () => {};
+  engine._isGameStateEnded = () => states[0] !== 'playing' || paused || disposed;
+  engine._isPlayerStateEnded = player => {
+    const index = players.indexOf(player);
+    return index < 0 || states[index] !== 'playing' || paused || disposed;
+  };
+  engine.onPlayerEnded = player => {
+    const index = players.indexOf(player);
+    if (index < 0) return;
+    states[index] = 'over';
+    pending[index] = 0;
+    callbacks.onState(index + 1, 'over');
+  };
+
+  const ensureRowsAhead = engine.gameMap.ensureRowsAhead.bind(engine.gameMap);
+  engine.gameMap.ensureRowsAhead = position => {
+    const activePlayers = players.filter((_, index) => states[index] !== 'over');
+    const positions = (activePlayers.length ? activePlayers : players).map(player => player.position.z);
+    ensureRowsAhead(Math.max(position, ...positions), Math.min(...positions));
+  };
+
+  engine.init();
+  secondHero.reset();
+  secondHero.idle();
+  await engine._onGLContextCreate(gl);
+  engine.pause();
+
+  const cameras = [engine.camera, engine.camera.clone()];
+  function resize() {
+    if (disposed) return;
+    const { width, height } = canvas.getBoundingClientRect();
+    if (!width || !height) return;
+    const scale = Math.min(window.devicePixelRatio || 1, 2);
+    engine.renderer.setSize(Math.round(width * scale), Math.round(height * scale), false);
+    const sideBySide = width >= 700;
+    const viewWidth = sideBySide ? width / 2 : width;
+    const viewHeight = sideBySide ? height : height / 2;
+    for (const camera of cameras) {
+      camera.left = -(viewWidth * scale);
+      camera.right = viewWidth * scale;
+      camera.top = viewHeight * scale;
+      camera.bottom = -(viewHeight * scale);
+      camera.zoom = Math.min(viewWidth, viewHeight) * scale / 4;
+      camera.updateProjectionMatrix();
+    }
+  }
+
+  function renderViews() {
+    const width = gl.drawingBufferWidth;
+    const height = gl.drawingBufferHeight;
+    const sideBySide = canvas.getBoundingClientRect().width >= 700;
+    engine.renderer.setScissorTest(true);
+    players.forEach((player, index) => {
+      const offset = viewOffsets[index];
+      offset.z -= (player.position.z - 8 + offset.z) * 0.1;
+      const targetX = Math.max(-3, Math.min(2, -player.position.x));
+      offset.x += (targetX - offset.x) * 0.1;
+      engine.scene.world.position.x = offset.x;
+      engine.scene.world.position.z = offset.z;
+      const viewport = sideBySide
+        ? { x: index * Math.floor(width / 2), y: 0, width: index === 0 ? Math.floor(width / 2) : Math.ceil(width / 2), height }
+        : { x: 0, y: index === 0 ? Math.floor(height / 2) : 0, width, height: index === 0 ? Math.ceil(height / 2) : Math.floor(height / 2) };
+      engine.renderer.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
+      engine.renderer.setScissor(viewport.x, viewport.y, viewport.width, viewport.height);
+      engine.renderer.render(engine.scene, cameras[index]);
+    });
+    engine.renderer.setScissorTest(false);
+  }
+
+  function frame() {
+    if (paused || disposed) return;
+    raf = requestAnimationFrame(frame);
+    players.forEach((player, index) => {
+      if (pending[index] && !player.moving && !drivers[index].isGameEnded()) {
+        pending[index]--;
+        drivers[index].moveWithDirection('SWIPE_UP');
+      }
+    });
+    engine.gameMap.tick(Date.now(), players);
+    players.forEach((player, index) => {
+      if (!player.moving) {
+        player.moveOnEntity();
+        player.moveOnCar();
+        if (player.isAlive && (player.position.x < -5 || player.position.x > 5)) {
+          engine.onCollide({}, 'feathers', undefined, player);
+        }
+      }
+      if (states[index] !== 'over') engine.gameMap.ensureRowsAhead(player.position.z);
+    });
+    renderViews();
+    gl.endFrameEXP();
+  }
+
+  function forward(playerNumber) {
+    const index = playerNumber - 1;
+    if (paused || disposed || states[index] === 'over') return;
+    if (states[index] === 'home') {
+      states[index] = 'playing';
+      players[index].stopIdle();
+      callbacks.onState(playerNumber, 'playing');
+    }
+    pending[index] = Math.min(pending[index] + 1, 10);
+  }
+
+  resize();
+  frame();
+  return {
+    forward,
+    restart() {
+      pending.fill(0);
+      players.forEach(player => { player.stopAnimations(); player.stopIdle(); });
+      states.fill('home');
+      viewOffsets.forEach(offset => { offset.x = 0; offset.z = 0; });
+      engine.init();
+      secondHero.reset();
+      secondHero.idle();
+      callbacks.onState(1, 'home');
+      callbacks.onState(2, 'home');
+      renderViews();
+    },
+    pause(value) {
+      if (paused === value || disposed) return;
+      paused = value;
+      pending.fill(0);
+      pauseGameAudio(paused);
+      if (paused) cancelAnimationFrame(raf);
+      else frame();
+    },
+    setAppearance(value, playerNumber = 1) {
+      if (disposed) return;
+      const player = players[playerNumber - 1];
+      player.setCharacter(value.character);
+      player.setColor(value.color);
+      renderViews();
+    },
+    resize,
+    dispose() {
+      disposed = true;
+      cancelAnimationFrame(raf);
+      players.forEach(player => { player.stopIdle(); player.stopAnimations(); player.disposeMaterials(); });
+      engine.scene.traverse(node => {
+        TweenMax.killTweensOf(node.position); TweenMax.killTweensOf(node.rotation); TweenMax.killTweensOf(node.scale);
+      });
+      engine.renderer.dispose();
+      AudioManager.dispose();
+      disposeAudio();
+    },
+  };
+}
+
 export async function createCharacterPreview(canvas, appearance) {
   models ??= ModelLoader.loadModels();
   await models;

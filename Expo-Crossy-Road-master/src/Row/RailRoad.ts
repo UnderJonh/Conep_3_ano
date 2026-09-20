@@ -73,11 +73,11 @@ export default class RailRoad extends Object3D {
     if (!this.active) {
       return;
     }
-    this.drive({ dt, player });
+    const players = Array.isArray(player) ? player : [player];
+    this.drive({ dt, players });
   };
 
-  drive = ({ dt, player }) => {
-    const { position, hitByTrain, moving } = player;
+  drive = ({ dt, players }) => {
     const { train } = this;
     const offset = 22 * 5;
 
@@ -86,23 +86,19 @@ export default class RailRoad extends Object3D {
     if (train.mesh.position.x > offset && train.speed > 0) {
       train.mesh.position.x = -offset;
       this.startRingingLight();
-      if (Math.abs(player.position.z - this.position.z) < 5 && player.isAlive) {
+      if (players.some((player) => Math.abs(player.position.z - this.position.z) < 5 && player.isAlive)) {
         AudioManager.playAsync(AudioManager.sounds.train.move["0"]);
       }
-      if (train === hitByTrain) {
-        player.hitByTrain = null;
-      }
+      players.forEach((player) => { if (train === player.hitByTrain) player.hitByTrain = null; });
     } else if (train.mesh.position.x < -offset && train.speed < 0) {
       train.mesh.position.x = offset;
       this.startRingingLight();
-      if (Math.abs(player.position.z - this.position.z) < 5 && player.isAlive) {
+      if (players.some((player) => Math.abs(player.position.z - this.position.z) < 5 && player.isAlive)) {
         AudioManager.playAsync(AudioManager.sounds.train.move["0"]);
       }
-      if (train === hitByTrain) {
-        player.hitByTrain = null;
-      }
-    } else if (!moving) {
-      this.trainShouldCheckCollision({ player });
+      players.forEach((player) => { if (train === player.hitByTrain) player.hitByTrain = null; });
+    } else {
+      players.forEach((player) => { if (!player.moving) this.trainShouldCheckCollision({ player }); });
     }
   };
 
@@ -130,7 +126,7 @@ export default class RailRoad extends Object3D {
             z: Math.random() * Math.PI - Math.PI / 2,
           });
 
-          this.onCollide(train, "feathers", "train");
+          this.onCollide(train, "feathers", "train", player);
           return;
         } else {
           ///Run Over Hero. ///TODO: Add a side collide
@@ -147,7 +143,7 @@ export default class RailRoad extends Object3D {
             y: Math.random() * Math.PI - Math.PI / 2,
           });
         }
-        this.onCollide(train, "feathers", "train");
+        this.onCollide(train, "feathers", "train", player);
       }
     }
   };

@@ -1,6 +1,6 @@
 # Crossy Road · CONEP
 
-Uma única placa ESP32 controla a galinha: **cada pisada forte e solta faz a galinha avançar uma casa**. O ranking mostra os jogadores e seus melhores recordes, sem segundo jogador ou corrida com tempo.
+Uma única placa ESP32 pode controlar um ou dois personagens: **cada jogador usa seu próprio sensor e cada pisada forte e solta faz somente o seu personagem avançar uma casa**. O modo tradicional de um jogador e o ranking continuam disponíveis.
 
 O jogo usa o motor 3D, os modelos, as texturas e a fonte de `Expo-Crossy-Road-master/`. O frontend React/Vite adapta o motor Expo para WebGL no navegador, mantendo carros, trens, rios, colisões, pontuação e reinício. A faixa central fica livre de árvores e pedras, e todos os rios têm uma passagem fixa no centro para o controle apenas para frente. O terreno mantém 24 faixas à frente e recicla somente as que já ficaram para trás, sem interromper a geração em partidas longas.
 
@@ -11,9 +11,18 @@ npm ci
 npm run dev
 ```
 
-Abra **http://127.0.0.1:5173/**. O jogo abre diretamente, inclusive sem Supabase. É possível testar tocando na tela ou pressionando **espaço / seta para cima**; segurar a tecla não repete passos. Ao colidir, clique em **Jogar novamente**.
+Abra **http://127.0.0.1:5173/**. O jogo abre diretamente, inclusive sem Supabase. No modo de um jogador, teste tocando na tela ou pressionando **espaço / seta para cima**; segurar a tecla não repete passos. Ao colidir, clique em **Jogar novamente**.
 
 Para usar o ESP, configure na raiz `.env.local` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` (modelo em `.env.example`). Use somente a chave pública. A conexão do jogo com a placa fica vinculada à sessão anônima deste navegador.
+
+## Multiplayer local
+
+Clique em **Multiplayer local** na abertura ou no ícone de duas pessoas. Antes da partida, cada jogador escolhe seu personagem e sua cor. A tela é dividida em duas câmeras do mesmo mundo 3D: os veículos, rios e faixas são compartilhados, e um jogador consegue ver o outro quando estão próximos.
+
+- Jogador 1: **Espaço** ou sensor no pino configurado para o jogador 1.
+- Jogador 2: **Enter** ou sensor no pino configurado para o jogador 2.
+- Cada metade tem placar e estado de partida independentes.
+- Em telas estreitas, as câmeras ficam uma acima da outra.
 
 ## Personagem e sons
 
@@ -31,11 +40,11 @@ Com Supabase configurado, o ranking é compartilhado entre navegadores. O nome e
 
 ## Banco do zero
 
-A migration única `supabase/migrations/20260917155448_crossy_game_from_scratch.sql` cria toda a estrutura necessária em um banco vazio. Ela substitui as migrations antigas de monitoramento e corridas. Não há dependência de tabelas de rodadas, arena ou competição de dois jogadores.
+A migration base `supabase/migrations/20260917155448_crossy_game_from_scratch.sql` cria toda a estrutura necessária em um banco vazio. A migration `20260920154931_local_multiplayer.sql` atualiza instalações existentes com o segundo canal de sensor. Não há dependência de tabelas de rodadas, arena ou corrida com tempo.
 
 | Tabela | Uso |
 | --- | --- |
-| `public.testes` | Conexões de uma placa, proprietário, sensibilidade, telemetria e contador de passos. |
+| `public.testes` | Conexões de uma placa, proprietário, sensibilidade e telemetria/contador separados para os dois jogadores. |
 | `private.dispositivos` | Hash SHA-256 do token de cada placa. |
 | `private.sinais` | Estado da detecção de pisadas e proteção contra reenvios. |
 | `public.crossy_ranking` | Nome, pontuação e data de cada recorde. |
@@ -66,12 +75,12 @@ Esta migration é uma base para banco vazio. Para **refazer do zero o projeto ex
 ## Configurar uma placa
 
 1. Clique na **engrenagem**, ao lado de **Créditos**. O jogo pausa enquanto a configuração está aberta.
-2. Informe a rede **Wi-Fi 2.4 GHz**, a senha e o GPIO ADC1 do sensor (padrão **34**).
+2. Informe a rede **Wi-Fi 2.4 GHz**, a senha e dois GPIOs ADC1 diferentes: jogador 1 no **34** e jogador 2 no **35** por padrão.
 3. Ajuste a **força mínima da pisada** e clique em **Salvar força mínima**. O padrão é **1,50 V**; o ajuste vai de **0,60 a 3,30 V**.
 4. Clique em **Gerar token da placa** e em **Baixar config.h**.
 5. Coloque o `config.h` baixado dentro de `esp32/sketch/`. Essa pasta já contém `sketch.ino` e `certificados.h`; abra `esp32/sketch/sketch.ino` na Arduino IDE e grave o firmware.
-6. Abra o Monitor Serial em **115200 baud**. HTTP 200 confirma os envios. A janela do jogo mostra a tensão e indica **Recebendo sinal do ESP32** quando há leituras recentes.
-7. Feche a configuração e pise forte para começar. Cada pisada completa gera um avanço.
+6. Abra o Monitor Serial em **115200 baud**. HTTP 200 confirma os envios. A janela do jogo mostra a tensão dos dois sensores.
+7. Feche a configuração e pise forte para começar. Cada pisada completa avança somente o jogador ligado àquele pino.
 
 A senha do Wi-Fi e o token ficam em memória durante a página e no `config.h` baixado; não são gravados no armazenamento local pelo frontend. Fechar e reabrir a janela preserva os campos durante essa sessão. Após recarregar a página, use o arquivo salvo ou substitua o token para baixar outra configuração. Substituir o token revoga o anterior. O arquivo é ignorado pelo Git.
 
@@ -90,9 +99,9 @@ A tensão é usada como aproximação da força, não como uma medida calibrada 
 
 ## Conexão e arquivos
 
-O ESP captura amostras a cada **20 ms** e envia lotes HTTPS a cada **200 ms**, com `X-Device-Token`, para a Edge Function existente `receber-tensao`. O payload conserva `teste_id`, `player: 1` e `amostras` com `tensao` / `instante_ms`. O servidor detecta a pisada e incrementa `infos_player_1.comandos`; o navegador recebe essa atualização pelo Supabase Realtime.
+O ESP captura os dois sensores a cada **20 ms** e envia lotes HTTPS a cada **200 ms**, com `X-Device-Token`, para a Edge Function `receber-tensao`. O payload conserva `teste_id`, `player: 1` ou `player: 2` e `amostras` com `tensao` / `instante_ms`. O servidor mantém debounce, replay e contador independentes em `infos_player_1` e `infos_player_2`; o navegador recebe as atualizações pelo Supabase Realtime.
 
-A migration do banco novo já inclui a sensibilidade, autorização por proprietário, registro de amostras e publicação Realtime de `public.testes`. As conexões aceitam somente a placa 1.
+A migration já inclui a sensibilidade, autorização por proprietário, registro de amostras e publicação Realtime de `public.testes`. Há uma placa física por conexão, com um token compartilhado pelos dois pinos.
 
 | Arquivo | Responsabilidade |
 | --- | --- |
@@ -117,7 +126,7 @@ npm test
 npm run test:e2e
 ```
 
-Os testes de navegador verificam o jogo 3D, teclado, créditos, personalização, sons de cada personagem, música em loop, ranking, janela de recorde, persistência e celular. Uma simulação de 2.000 faixas verifica terreno contínuo, passagens livres, reciclagem e reinício. O teste de integração da placa precisa do Supabase configurado. `supabase/tests/crossy.sql` verifica autorização, tokens, amostras, detecção de pisadas e ranking em uma transação com rollback.
+Os testes de navegador verificam o jogo 3D, teclado, multiplayer local, placares independentes, créditos, personalização, sons, ranking, persistência e celular. Uma simulação de 2.000 faixas verifica terreno contínuo, passagens livres, reciclagem e reinício. O teste de integração da placa precisa do Supabase configurado. `supabase/tests/crossy.sql` verifica autorização, tokens, amostras dos dois jogadores, detecção de pisadas e ranking em uma transação com rollback.
 
 O jogo requer **WebGL 2**. A validação de navegador usa Playwright, pois o Browser plugin não está disponível nesta sessão. A placa física e o circuito precisam de teste no hardware.
 

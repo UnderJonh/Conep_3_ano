@@ -125,6 +125,14 @@ begin
     jsonb_build_object('tensao', 2.8, 'instante_ms', ms + 800),
     jsonb_build_object('tensao', 0, 'instante_ms', ms + 2400)), repeat('a', 64));
   if (result->>'comandos')::integer <> 2 then raise exception 'Pressão mantida contou'; end if;
+  -- O segundo pino mantém debounce, replay e contador independentes.
+  result := public.registrar_amostras(id, 2, jsonb_build_array(
+    jsonb_build_object('tensao', 0, 'instante_ms', ms + 100),
+    jsonb_build_object('tensao', 2.5, 'instante_ms', ms + 120),
+    jsonb_build_object('tensao', 0, 'instante_ms', ms + 160)), repeat('a', 64));
+  if (result->>'player')::integer <> 2 or (result->>'comandos')::integer <> 1 then raise exception 'Pisada do jogador 2 não contou'; end if;
+  if (select (infos_player_1->>'comandos')::integer from public.testes where public.testes.id = id) <> 2 then raise exception 'Jogador 2 alterou contador do jogador 1'; end if;
+  if (select (infos_player_2->>'comandos')::integer from public.testes where public.testes.id = id) <> 1 then raise exception 'Contador do jogador 2 não foi persistido'; end if;
   begin
     perform public.registrar_amostras(id, 1, pulse, repeat('b', 64));
     raise exception 'Token inválido deveria falhar';

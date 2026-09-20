@@ -16,6 +16,7 @@ test('uma placa → config.h → pisada forte via Edge e Realtime → galinha av
   await dialog.getByLabel('Nome do Wi-Fi (SSID)').fill('CONEP teste');
   await dialog.getByLabel('Senha do Wi-Fi').fill('teste-123');
   await dialog.getByLabel('Pino do sensor').selectOption('32');
+  await dialog.getByLabel('GPIO do jogador 2').selectOption('33');
   await dialog.getByRole('button', { name: 'Gerar token da placa', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'Baixar config.h' })).toBeEnabled();
   const token = await dialog.getByLabel('Token da placa', { exact: true }).inputValue();
@@ -27,6 +28,8 @@ test('uma placa → config.h → pisada forte via Edge e Realtime → galinha av
   const config = readFileSync((await download.path())!, 'utf8');
   expect(config).toContain('const int PLAYER_ID = 1;');
   expect(config).toContain('const int PINO_ADC = 32;');
+  expect(config).toContain('const int PINO_ADC_PLAYER_1 = 32;');
+  expect(config).toContain('const int PINO_ADC_PLAYER_2 = 33;');
   expect(config).toContain(id); expect(config).toContain(token);
   await page.getByRole('button', { name: 'Fechar', exact: true }).click();
   await page.getByRole('button', { name: 'Configurar ESP32' }).click();

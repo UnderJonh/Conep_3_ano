@@ -81,27 +81,23 @@ export default class Road extends Object3D {
     if (!this.active) {
       return;
     }
-    this.cars.map((car) => this.drive({ dt, player, car }));
+    const players = Array.isArray(player) ? player : [player];
+    this.cars.map((car) => this.drive({ dt, players, car }));
   };
 
-  drive = ({ dt, player, car }) => {
-    const { hitBy } = player;
+  drive = ({ dt, players, car }) => {
     const offset = 11;
 
     car.mesh.position.x += car.speed;
 
     if (car.mesh.position.x > offset && car.speed > 0) {
       car.mesh.position.x = -offset;
-      if (car === hitBy) {
-        player.hitBy = null;
-      }
+      players.forEach((player) => { if (car === player.hitBy) player.hitBy = null; });
     } else if (car.mesh.position.x < -offset && car.speed < 0) {
       car.mesh.position.x = offset;
-      if (car === hitBy) {
-        player.hitBy = null;
-      }
+      players.forEach((player) => { if (car === player.hitBy) player.hitBy = null; });
     } else {
-      this.shouldCheckCollision({ player, car });
+      players.forEach((player) => this.shouldCheckCollision({ player, car }));
     }
   };
 
@@ -114,7 +110,7 @@ export default class Road extends Object3D {
         player.position.x > mesh.position.x - collisionBox
       ) {
         player.collideWithCar(this, car);
-        this.onCollide(car, "feathers", "car");
+        this.onCollide(car, "feathers", "car", player);
       }
     }
   };

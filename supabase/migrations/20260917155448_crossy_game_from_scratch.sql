@@ -8,6 +8,7 @@ create table public.testes (
   nome text not null check (char_length(btrim(nome)) between 1 and 120),
   owner_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   infos_player_1 jsonb not null default '{}' check (jsonb_typeof(infos_player_1) = 'object'),
+  infos_player_2 jsonb not null default '{}' check (jsonb_typeof(infos_player_2) = 'object'),
   limiar_forte numeric not null default 1.50 check (limiar_forte between 0.60 and 3.30),
   revisao bigint not null default 0,
   created_at timestamptz not null default now(),
@@ -74,7 +75,7 @@ begin
   select * into t from public.testes where id = p_teste_id and owner_id = auth.uid() for update;
   if not found then raise sqlstate 'PT403' using message = 'Conexão sem permissão de administração.'; end if;
   update public.testes set limiar_forte = p_limiar where id = t.id returning * into t;
-  update private.sinais set estado = jsonb_build_object('ultima_amostra', estado->'ultima_amostra') where teste_id = t.id;
+  update private.sinais set estado = '{}'::jsonb where teste_id = t.id;
   return t;
 end $$;
 
@@ -89,7 +90,7 @@ begin
   end if;
   insert into private.dispositivos(teste_id, token_hash) values (p_teste_id, p_token_hash)
     on conflict (teste_id) do update set token_hash = excluded.token_hash, created_at = now();
-  update private.sinais set estado = jsonb_build_object('ultima_amostra', estado->'ultima_amostra') where teste_id = p_teste_id;
+  update private.sinais set estado = '{}'::jsonb where teste_id = p_teste_id;
 end $$;
 
 create function private.dispositivos_configurados(p_teste_id uuid)
@@ -140,11 +141,11 @@ grant execute on function private.configurar_crossy(uuid,numeric), public.config
 -- RPC exclusiva do servidor. Um lock serializa lotes e mudanças de configuração.
 create function public.registrar_amostras(p_teste_id uuid, p_player integer, p_amostras jsonb, p_token_hash text)
 returns jsonb language plpgsql security invoker set search_path = '' as $$
-declare t public.testes; i jsonb; s jsonb; item jsonb; v numeric; ms bigint; anterior bigint := 0;
+declare t public.testes; i jsonb; estados jsonb; s jsonb; chave text; item jsonb; v numeric; ms bigint; anterior bigint := 0;
   agora bigint := floor(extract(epoch from clock_timestamp()) * 1000)::bigint;
 begin
-  if p_player is distinct from 1 or p_amostras is null or jsonb_typeof(p_amostras) <> 'array' then
-    raise sqlstate 'PT400' using message = 'Informe amostras da placa 1.';
+  if p_player is null or p_player not in (1, 2) or p_amostras is null or jsonb_typeof(p_amostras) <> 'array' then
+    raise sqlstate 'PT400' using message = 'Informe amostras do jogador 1 ou 2.';
   end if;
   if jsonb_array_length(p_amostras) not between 1 and 50 then
     raise sqlstate 'PT400' using message = 'Envie entre 1 e 50 amostras.';
@@ -154,9 +155,11 @@ begin
   if p_token_hash is null or not exists (select 1 from private.dispositivos where teste_id = t.id and token_hash = p_token_hash) then
     raise sqlstate 'PT401' using message = 'Token do dispositivo inválido.';
   end if;
-  i := t.infos_player_1;
-  select estado into s from private.sinais where teste_id = t.id;
-  s := coalesce(s, '{}');
+  chave := 'player_' || p_player;
+  i := case when p_player = 1 then t.infos_player_1 else t.infos_player_2 end;
+  select estado into estados from private.sinais where teste_id = t.id;
+  estados := coalesce(estados, '{}');
+  s := coalesce(estados->chave, '{}');
   for item in select value from jsonb_array_elements(p_amostras) loop
     if jsonb_typeof(item->'tensao') is distinct from 'number' or jsonb_typeof(item->'instante_ms') is distinct from 'number' then
       raise sqlstate 'PT400' using message = 'Amostra precisa de tensão e instante_ms numéricos.';
@@ -187,10 +190,15 @@ begin
     end if;
     s := s || jsonb_build_object('ultima_amostra', ms);
   end loop;
-  insert into private.sinais(teste_id, estado) values (t.id, s)
+  estados := jsonb_set(estados, array[chave], s, true);
+  insert into private.sinais(teste_id, estado) values (t.id, estados)
     on conflict (teste_id) do update set estado = excluded.estado;
-  update public.testes set infos_player_1 = i where id = t.id;
-  return jsonb_build_object('ok', true, 'teste_id', t.id, 'player', 1, 'tensao', i->'tensao', 'comandos', coalesce(i->'comandos', '0'));
+  if p_player = 1 then
+    update public.testes set infos_player_1 = i where id = t.id;
+  else
+    update public.testes set infos_player_2 = i where id = t.id;
+  end if;
+  return jsonb_build_object('ok', true, 'teste_id', t.id, 'player', p_player, 'tensao', i->'tensao', 'comandos', coalesce(i->'comandos', '0'));
 end $$;
 create function public.registrar_tensao(p_teste_id uuid, p_player integer, p_tensao double precision, p_token_hash text)
 returns jsonb language plpgsql security invoker set search_path = '' as $$

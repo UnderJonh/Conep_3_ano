@@ -67,22 +67,24 @@ export default class Engine {
     return !this._hero.isAlive || this._isGameStateEnded();
   }
 
-  onCollide = async (obstacle = {}, type = "feathers", collision) => {
-    if (this.isGameEnded()) {
+  onCollide = async (obstacle = {}, type = "feathers", collision, player = this._hero) => {
+    if (!player?.isAlive || (this._isPlayerStateEnded
+      ? this._isPlayerStateEnded(player)
+      : player === this._hero && this._isGameStateEnded())) {
       return;
     }
-    this._hero.isAlive = false;
-    this._hero.stopIdle();
+    player.isAlive = false;
+    player.stopIdle();
     if (collision === "car") {
       AudioManager.playCarHitSound();
-      AudioManager.playDeathSound(this._hero._character);
+      AudioManager.playDeathSound(player._character);
     } else if (collision === "train") {
       await AudioManager.playAsync(AudioManager.sounds.train.die[`0`]);
-      AudioManager.playDeathSound(this._hero._character);
+      AudioManager.playDeathSound(player._character);
     }
-    this.scene.useParticle(this._hero, type, obstacle.speed);
+    this.scene.useParticle(player, type, obstacle.speed);
     this.scene.rumble();
-    this.gameOver();
+    this.gameOver(player);
   };
 
   // Setup initial scene
@@ -120,11 +122,15 @@ export default class Engine {
   };
 
   // Reset variables, restart game
-  gameOver = () => {
-    this._hero.moving = false;
+  gameOver = (player = this._hero) => {
+    player.moving = false;
     // Stop player from finishing a movement
-    this._hero.stopAnimations();
-    this.onGameEnded();
+    player.stopAnimations();
+    if (this.onPlayerEnded) {
+      this.onPlayerEnded(player);
+    } else {
+      this.onGameEnded();
+    }
     // this.gameState = State.Game.gameOver;
 
     // this.props.setGameState(this.gameState);

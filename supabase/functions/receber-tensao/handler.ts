@@ -1,8 +1,8 @@
 export type Amostra = { tensao: number; instante_ms: number };
-export type Leitura = { teste_id: string; player: 1 } & (
+export type Leitura = { teste_id: string; player: 1 | 2 } & (
   { tensao: number; amostras?: never } | { amostras: Amostra[]; tensao?: never }
 );
-export type Registro = { ok: true; teste_id: string; player: 1; tensao?: number; comandos?: number };
+export type Registro = { ok: true; teste_id: string; player: 1 | 2; tensao?: number; comandos?: number };
 export type Registrar = (leitura: Leitura, tokenHash: string) => Promise<{
   data: Registro | null;
   error: { code: string; message: string } | null;
@@ -22,7 +22,7 @@ export function validarLeitura(value: unknown): value is Leitura {
   const input = value as Record<string, unknown>;
   const base = Object.keys(input).every((key) => ['teste_id', 'player', 'tensao', 'amostras'].includes(key)) &&
     typeof input.teste_id === 'string' && uuid.test(input.teste_id) &&
-    input.player === 1;
+    (input.player === 1 || input.player === 2);
   if (!base) return false;
   const voltage = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 3.6;
   if ('tensao' in input) return !('amostras' in input) && voltage(input.tensao);
@@ -67,7 +67,7 @@ export function criarHandler(registrar: Registrar) {
       let leitura: unknown;
       try { leitura = JSON.parse(new TextDecoder().decode(bytes)); }
       catch { return json({ ok: false, error: 'JSON inválido.' }, 400); }
-      if (!validarLeitura(leitura)) return json({ ok: false, error: 'Informe UUID, player 1 e tensão entre 0 e 3,6 V, ou até 50 amostras ordenadas com instante_ms.' }, 400);
+      if (!validarLeitura(leitura)) return json({ ok: false, error: 'Informe UUID, jogador 1 ou 2 e tensão entre 0 e 3,6 V, ou até 50 amostras ordenadas com instante_ms.' }, 400);
       const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
       const hash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
       const { data, error } = await registrar(leitura, hash);
