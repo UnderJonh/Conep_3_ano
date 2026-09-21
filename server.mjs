@@ -1,6 +1,8 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
+import { createClient } from '@supabase/supabase-js';
+import { attachWebSocketGateway } from './websocket-gateway.mjs';
 
 const root = resolve('frontend/dist');
 const port = Number.parseInt(process.env.PORT ?? '3000', 10);
@@ -18,12 +20,22 @@ const types = {
   '.woff2': 'font/woff2',
 };
 
+const supabaseUrl = (process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? '').trim();
+const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim();
+if (!supabaseUrl || !serviceKey) {
+  console.error('Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no servidor.');
+  process.exit(1);
+}
+const supabase = createClient(supabaseUrl, serviceKey, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+
 if (!existsSync(join(root, 'index.html'))) {
   console.error('Build não encontrado. Execute npm run build antes de iniciar.');
   process.exit(1);
 }
 
-createServer((request, response) => {
+const server = createServer((request, response) => {
   const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
   const relative = normalize(pathname).replace(/^([/\\])+/, '');
   let file = resolve(root, relative);
@@ -41,6 +53,9 @@ createServer((request, response) => {
   });
   if (request.method === 'HEAD') response.end();
   else createReadStream(file).pipe(response);
-}).listen(port, '0.0.0.0', () => {
+});
+
+attachWebSocketGateway(server, supabase);
+server.listen(port, '0.0.0.0', () => {
   console.log(`Voltage Run disponível na porta ${port}`);
 });

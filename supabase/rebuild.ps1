@@ -1,6 +1,7 @@
 param([string]$OutputPath = (Join-Path $PSScriptRoot 'rebuild.sql'))
 $ErrorActionPreference = 'Stop'
 $migration = Join-Path $PSScriptRoot 'migrations/20260917155448_crossy_game_from_scratch.sql'
+$websocketMigration = Join-Path $PSScriptRoot 'migrations/20260921180023_websocket_commands.sql'
 $reset = @'
 -- RECONSTRUÇÃO DO ZERO: apaga conexões, tokens, sinais e rankings do jogo.
 -- Execute este arquivo inteiro no SQL Editor do projeto CONEP.
@@ -21,6 +22,7 @@ do $$ declare fn record; begin
     where n.nspname = 'public' and p.proname in (
       'configurar_crossy', 'configurar_dispositivo', 'dispositivos_configurados',
       'registrar_recorde_crossy', 'registrar_amostras', 'registrar_tensao',
+      'autenticar_dispositivo_ws', 'registrar_comando_ws',
       'alterar_status', 'finalizar_rodada', 'iniciar_corrida', 'concluir_corrida',
       'registrar_vencedor', 'registrar_vencedor_arena', 'pisada_treino', 'hora_servidor'
     ) loop
@@ -56,12 +58,14 @@ do $$ begin
     );
     insert into supabase_migrations.schema_migrations(version, name, statements)
       values ('20260917155448', 'crossy_game_from_scratch', array[]::text[]),
-        ('20260920154931', 'local_multiplayer', array[]::text[])
+        ('20260920154931', 'local_multiplayer', array[]::text[]),
+        ('20260921180023', 'websocket_commands', array[]::text[])
       on conflict (version) do update set name = excluded.name;
   end if;
 end $$;
 commit;
 '@
-$sql = $reset + "`n" + [IO.File]::ReadAllText($migration) + "`n" + $history
+$sql = $reset + "`n" + [IO.File]::ReadAllText($migration) + "`n" +
+  [IO.File]::ReadAllText($websocketMigration) + "`n" + $history
 [IO.File]::WriteAllText($OutputPath, $sql, [Text.UTF8Encoding]::new($false))
 Write-Output "SQL completo gerado em $OutputPath"

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { apiUrl, client, errorMessage } from '../lib/supabase';
+import { client, errorMessage } from '../lib/supabase';
 import type { PlayerInfo, Teste } from '../lib/database';
+import { websocketFirmwareConfig, websocketUrl } from '../lib/websocket';
 
 const adcPins = [32, 33, 34, 35, 36, 39];
 
@@ -92,7 +93,10 @@ export function CrossyEspSetup({ teste, error: connectionError, connecting, conn
     if (!teste || !token) return;
     if (!ssid.trim() || /[\x00-\x1f]/.test(ssid + password)) { setError('Informe o nome do Wi-Fi sem caracteres de controle.'); return; }
     if (pinOne === pinTwo) { setError('Escolha um pino diferente para cada jogador.'); return; }
-    const text = `#pragma once\n// Crossy Road · CONEP · uma placa, dois sensores\nconst char* WIFI_SSID = ${JSON.stringify(ssid)};\nconst char* WIFI_PASSWORD = ${JSON.stringify(password)};\nconst char* API_URL = ${JSON.stringify(apiUrl)};\nconst char* TESTE_ID = ${JSON.stringify(teste.id)};\nconst int PLAYER_ID = 1; // Compatibilidade com configurações anteriores.\nconst char* DEVICE_TOKEN = ${JSON.stringify(token)};\nconst int PINO_ADC = ${pinOne}; // Compatibilidade: jogador 1.\nconst int PINO_ADC_PLAYER_1 = ${pinOne};\nconst int PINO_ADC_PLAYER_2 = ${pinTwo};\n`;
+    let socket;
+    try { socket = websocketFirmwareConfig(); }
+    catch (err) { setError(errorMessage(err)); return; }
+    const text = `#pragma once\n// Crossy Road · CONEP · uma placa, dois sensores\nconst char* WIFI_SSID = ${JSON.stringify(ssid)};\nconst char* WIFI_PASSWORD = ${JSON.stringify(password)};\nconst char* WS_HOST = ${JSON.stringify(socket.host)};\nconst uint16_t WS_PORT = ${socket.port};\nconst char* WS_PATH = ${JSON.stringify(socket.path)};\nconst bool WS_SECURE = ${socket.secure};\nconst char* TESTE_ID = ${JSON.stringify(teste.id)};\nconst char* DEVICE_TOKEN = ${JSON.stringify(token)};\nconst int PINO_ADC_PLAYER_1 = ${pinOne};\nconst int PINO_ADC_PLAYER_2 = ${pinTwo};\nconst float LIMIAR_FORTE = ${threshold.toFixed(2)}f;\n`;
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
@@ -129,6 +133,6 @@ export function CrossyEspSetup({ teste, error: connectionError, connecting, conn
     </fieldset>
     {error ? <p role="alert" className="setup-error">{error}</p> : null}
     <p role="status" className="setup-message">{message}</p>
-    <details><summary>Como gravar a placa</summary><ol><li>Conecte um sensor ao pino do jogador 1 e outro ao pino do jogador 2.</li><li>Abra <code>esp32/sketch/sketch.ino</code> na Arduino IDE.</li><li>Coloque o <code>config.h</code> baixado junto de <code>sketch.ino</code> e <code>certificados.h</code>.</li><li>Selecione sua ESP32 e a porta USB e grave o firmware.</li><li>Abra o Monitor Serial em 115200 baud. HTTP 200 confirma cada envio.</li></ol><p className="small">Use GND comum e entrada máxima de 3,3 V em cada GPIO.</p>{teste ? <label>ID da conexão<input readOnly value={teste.id} /></label> : null}<label>Endereço de envio<input readOnly value={apiUrl} /></label></details>
+    <details><summary>Como gravar a placa</summary><ol><li>Conecte um sensor ao pino do jogador 1 e outro ao pino do jogador 2.</li><li>Instale a biblioteca <code>WebSockets</code> de Markus Sattler na Arduino IDE.</li><li>Abra <code>esp32/sketch/sketch.ino</code> na Arduino IDE.</li><li>Coloque o <code>config.h</code> baixado junto de <code>sketch.ino</code> e <code>certificados.h</code>.</li><li>Selecione sua ESP32 e a porta USB e grave o firmware.</li><li>Abra o Monitor Serial em 115200 baud. “WebSocket autenticado” confirma a conexão.</li></ol><p className="small">Use GND comum e entrada máxima de 3,3 V em cada GPIO.</p>{teste ? <label>ID da conexão<input readOnly value={teste.id} /></label> : null}<label>Endereço WebSocket<input readOnly value={websocketUrl()} /></label></details>
   </div>;
 }

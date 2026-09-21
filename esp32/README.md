@@ -1,71 +1,51 @@
-# Código do ESP32
+# Firmware ESP32 · Crossy Road
 
-O ESP32 lê dois sensores, um por jogador, e envia as amostras para o servidor do jogo. O servidor identifica cada pisada e o navegador movimenta o personagem correspondente.
-
-## Arquivos
-
-- `sketch/sketch.ino`: programa principal da placa.
-- `sketch/certificados.h`: certificados públicos usados na conexão HTTPS.
-- `diagram.json`: ligações da simulação no Wokwi.
-- `sketch/config.h`: Wi-Fi, endereço do servidor, token e pinos dos sensores. É gerado pelo jogo e não deve ser enviado ao Git.
+Uma única placa lê dois sensores, detecta as pisadas localmente e envia comandos por uma conexão WebSocket persistente. Cada sensor controla um jogador.
 
 ## Ligações
 
-Cada sensor usa um pino ADC1 diferente e ambos compartilham o GND da placa:
-
 | Sensor | Sinal padrão | Alimentação |
-|---|---|---|
-| Jogador 1 | `GPIO 34` | `3V3` e `GND` |
-| Jogador 2 | `GPIO 35` | `3V3` e `GND` |
+| --- | --- | --- |
+| Jogador 1 | GPIO 34 | 3V3 e GND |
+| Jogador 2 | GPIO 35 | 3V3 e GND |
 
-Nunca envie mais de **3,3 V** a um GPIO. Ao trocar os pinos, escolha duas entradas ADC1 compatíveis com a placa.
+Use entradas ADC1 diferentes e GND comum. Nunca aplique mais de 3,3 V aos GPIOs.
+
+## Dependência da Arduino IDE
+
+Instale pelo Library Manager a biblioteca **WebSockets**, de Markus Sattler (`arduinoWebSockets`). O suporte a Wi-Fi, ADC e TLS já faz parte do pacote da placa ESP32.
+
+## Configuração
+
+Baixe `config.h` na janela de configuração do jogo e coloque-o em `esp32/sketch/`. O arquivo contém:
+
+- Wi-Fi 2,4 GHz;
+- host, porta e caminho do gateway WebSocket;
+- ID da conexão e token do dispositivo;
+- GPIO de cada jogador;
+- limiar de força utilizado pela detecção local.
+
+Ao baixar o arquivo pelo site publicado, o domínio WebSocket é preenchido automaticamente com o domínio do site. Se usar o frontend local, configure `VITE_WS_URL` com um endereço que o ESP32 consiga alcançar.
 
 ## Funcionamento
 
-1. O ESP32 conecta ao Wi-Fi e sincroniza o relógio.
-2. Uma tarefa lê os dois sensores a cada 20 ms.
-3. As leituras de cada jogador ficam em uma fila independente com 100 posições.
-4. A cada 200 ms, o firmware prepara os dois lotes e os envia na mesma requisição HTTPS.
-5. O pedido usa o token da placa uma única vez e mantém as amostras de cada jogador separadas.
+1. O ESP32 conecta ao Wi-Fi e sincroniza o relógio para validar o certificado TLS.
+2. Abre `wss://<domínio>/ws` uma única vez e autentica com o token da placa.
+3. Lê os sensores a cada 50 ms.
+4. Uma tensão acima do limiar inicia a pisada; o retorno a 0,25 V conclui o pulso.
+5. O firmware envia imediatamente um pacote `command` com jogador, sessão, sequência e pico de tensão.
+6. A cada 500 ms envia telemetria leve para atualizar os indicadores do navegador.
 
-Exemplo do conteúdo enviado:
-
-```json
-{
-  "teste_id": "UUID_DA_SESSAO",
-  "leituras": [
-    {
-      "player": 1,
-      "amostras": [{ "tensao": 1.742, "instante_ms": 1789823456789 }]
-    },
-    {
-      "player": 2,
-      "amostras": [{ "tensao": 2.104, "instante_ms": 1789823456789 }]
-    }
-  ]
-}
-```
-
-O token da placa é enviado no cabeçalho `X-Device-Token`.
-
-## Principais configurações
-
-- `PINO_ADC_PLAYER_1`: sensor do jogador 1; o padrão é 34.
-- `PINO_ADC_PLAYER_2`: sensor do jogador 2; o padrão é 35.
-- `INTERVALO_AMOSTRA`: tempo entre leituras; o padrão é 20 ms.
-- `INTERVALO_ENVIO`: tempo entre envios; o padrão é 200 ms.
-
-Se uma fila encher, a leitura mais antiga daquele jogador é descartada. Leituras com mais de 2 segundos também não são enviadas, evitando que uma pisada antiga apareça depois de uma queda de rede.
+Não há fila de amostras antigas. Se o socket estiver desconectado, comandos são descartados para não movimentar o personagem atrasado após a reconexão.
 
 ## Monitor Serial
 
-Abra o Monitor Serial em **115200 baud**. Uma resposta normal é:
+Uma inicialização normal mostra:
 
 ```text
-Jogador: 2 | Tensao: 1.742 V | HTTP: 200 | Amostras: 10 | RSSI: -48 dBm
+[WS] Conectado. Autenticando dispositivo...
+[WS] WebSocket autenticado. Controle pronto.
+[CTRL] Jogador 1 | seq=1 | pico=2.571 V
 ```
 
-- `HTTP 200`: envio realizado.
-- `HTTP 4xx`: configuração, token ou requisição recusada.
-- `HTTP 5xx`: erro no servidor.
-- código negativo: falha de conexão, HTTPS ou timeout.
+Se aparecer `Dispositivo nao autorizado`, gere e grave um novo `config.h`. Se a conexão TLS falhar, confirme o domínio público e atualize `certificados.h` caso a autoridade certificadora do provedor tenha mudado.

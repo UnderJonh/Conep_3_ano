@@ -49,6 +49,10 @@ do $$ begin
     perform public.registrar_tensao(current_setting('crossy.qa_connection')::uuid, 1, 2, repeat('a', 64));
     raise exception 'Navegador não pode enviar telemetria';
   exception when insufficient_privilege then null; end;
+  begin
+    perform public.registrar_comando_ws(current_setting('crossy.qa_connection')::uuid, 1, 'deadbeef', 1, 2.5, repeat('a', 64));
+    raise exception 'Navegador nao pode registrar comando WebSocket';
+  exception when insufficient_privilege then null; end;
 end $$;
 
 reset role;
@@ -133,6 +137,12 @@ begin
   if (result->>'player')::integer <> 2 or (result->>'comandos')::integer <> 1 then raise exception 'Pisada do jogador 2 não contou'; end if;
   if (select (infos_player_1->>'comandos')::integer from public.testes where public.testes.id = id) <> 2 then raise exception 'Jogador 2 alterou contador do jogador 1'; end if;
   if (select (infos_player_2->>'comandos')::integer from public.testes where public.testes.id = id) <> 1 then raise exception 'Contador do jogador 2 não foi persistido'; end if;
+  if not public.autenticar_dispositivo_ws(id, repeat('a', 64)) then raise exception 'Gateway nao autenticou a placa'; end if;
+  if public.autenticar_dispositivo_ws(id, repeat('b', 64)) then raise exception 'Gateway aceitou token invalido'; end if;
+  result := public.registrar_comando_ws(id, 2, 'deadbeef', 1, 2.7, repeat('a', 64));
+  if not (result->>'aceito')::boolean or (result->>'comandos')::integer <> 2 then raise exception 'Comando WebSocket nao foi registrado'; end if;
+  result := public.registrar_comando_ws(id, 2, 'deadbeef', 1, 2.7, repeat('a', 64));
+  if (result->>'aceito')::boolean or (result->>'comandos')::integer <> 2 then raise exception 'Comando WebSocket duplicado foi contado'; end if;
   begin
     perform public.registrar_amostras(id, 1, pulse, repeat('b', 64));
     raise exception 'Token inválido deveria falhar';

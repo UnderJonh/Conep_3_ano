@@ -7,18 +7,25 @@
     "node": ">=22.12.0",
     "npm": ">=10"
   },
-  "workspaces": ["frontend"],
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
     "dev": "npm run dev --workspace frontend",
     "build": "npm run build --workspace frontend",
     "start": "node server.mjs",
     "lint": "npm run typecheck --workspace frontend && deno check supabase/functions/receber-tensao/index.ts",
-    "test": "deno test supabase/functions/receber-tensao/handler.test.ts",
+    "test": "deno test supabase/functions/receber-tensao/handler.test.ts && npm run test:ws",
+    "test:ws": "node --test tests/websocket-gateway.test.mjs",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@playwright/test": "1.58.2",
     "deno": "2.7.4",
     "supabase": "2.117.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.116.0",
+    "ws": "8.18.3"
   }
 }

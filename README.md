@@ -13,7 +13,7 @@ npm run dev
 
 Abra **http://127.0.0.1:5173/**. O jogo abre diretamente, inclusive sem Supabase. No modo de um jogador, teste tocando na tela ou pressionando **espaço / seta para cima**; segurar a tecla não repete passos. Ao colidir, clique em **Jogar novamente**.
 
-Para usar o ESP, configure na raiz `.env.local` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` (modelo em `.env.example`). Use somente a chave pública. A conexão do jogo com a placa fica vinculada à sessão anônima deste navegador.
+Para usar o ESP, configure na raiz `.env.local` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` (modelo em `.env.example`). Use somente a chave pública no frontend. O servidor publicado também exige `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`; a chave secreta nunca pode usar o prefixo `VITE_`.
 
 ## Multiplayer local
 
@@ -51,7 +51,7 @@ A migration base `supabase/migrations/20260917155448_crossy_game_from_scratch.sq
 | `private.sinais` | Estado da detecção de pisadas e proteção contra reenvios. |
 | `public.crossy_ranking` | Nome, pontuação e data de cada recorde. |
 
-As tabelas usam RLS. O navegador pode ler sua conexão e o ranking público; alterações de configuração e registro de recordes passam por RPCs. Somente a Edge Function, com credenciais de servidor, pode registrar leituras do ESP32.
+As tabelas usam RLS. O navegador pode ler sua conexão e o ranking público; alterações de configuração e registro de recordes passam por RPCs. Somente o gateway WebSocket e a Edge Function legada, ambos com credenciais de servidor, podem registrar comandos ou leituras do ESP32.
 
 Para um projeto Supabase novo, habilite **Authentication → Settings → Allow anonymous sign-ins**, copie as credenciais públicas para `.env.local` e execute:
 
@@ -61,6 +61,8 @@ npx supabase link --project-ref SEU_PROJECT_REF
 npx supabase db push
 npx supabase functions deploy receber-tensao
 ```
+
+No Railway, configure `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`. O mesmo serviço HTTP atende o site e o endpoint WebSocket `/ws`.
 
 Para recriar o banco de desenvolvimento local (requer Docker; apaga os dados locais):
 
@@ -81,8 +83,9 @@ Esta migration é uma base para banco vazio. Para **refazer do zero o projeto ex
 3. Ajuste a **força mínima da pisada** e clique em **Salvar força mínima**. O padrão é **1,50 V**; o ajuste vai de **0,60 a 3,30 V**.
 4. Clique em **Gerar token da placa** e em **Baixar config.h**.
 5. Coloque o `config.h` baixado dentro de `esp32/sketch/`. Essa pasta já contém `sketch.ino` e `certificados.h`; abra `esp32/sketch/sketch.ino` na Arduino IDE e grave o firmware.
-6. Abra o Monitor Serial em **115200 baud**. HTTP 200 confirma os envios. A janela do jogo mostra a tensão dos dois sensores.
-7. Feche a configuração e pise forte para começar. Cada pisada completa avança somente o jogador ligado àquele pino.
+6. Instale a biblioteca **WebSockets**, de Markus Sattler, na Arduino IDE.
+7. Abra o Monitor Serial em **115200 baud**. `WebSocket autenticado` confirma a conexão. A janela do jogo mostra a tensão dos dois sensores.
+8. Feche a configuração e pise forte para começar. Cada pisada completa avança somente o jogador ligado àquele pino.
 
 A senha do Wi-Fi e o token ficam em memória durante a página e no `config.h` baixado; não são gravados no armazenamento local pelo frontend. Fechar e reabrir a janela preserva os campos durante essa sessão. Após recarregar a página, use o arquivo salvo ou substitua o token para baixar outra configuração. Substituir o token revoga o anterior. O arquivo é ignorado pelo Git.
 
@@ -101,7 +104,7 @@ A tensão é usada como aproximação da força, não como uma medida calibrada 
 
 ## Conexão e arquivos
 
-O ESP captura os dois sensores a cada **20 ms** e envia os dois lotes juntos, em uma única requisição HTTPS a cada **200 ms**, com `X-Device-Token`, para a Edge Function `receber-tensao`. Cada item conserva `player: 1` ou `player: 2` e suas `amostras` com `tensao` / `instante_ms`. O servidor mantém debounce, replay e contador independentes em `infos_player_1` e `infos_player_2`; o navegador recebe as atualizações pelo Supabase Realtime.
+O ESP lê os dois sensores a cada **50 ms** e detecta a pisada localmente. Ao soltar o sensor, envia imediatamente um pacote pequeno pela conexão WebSocket persistente. O gateway autentica a placa, encaminha o comando ao navegador sem esperar o banco e persiste o contador no Supabase em segundo plano. Sessão e sequência impedem repetição de pacotes; telemetria leve a cada 500 ms atualiza os indicadores de tensão.
 
 A migration já inclui a sensibilidade, autorização por proprietário, registro de amostras e publicação Realtime de `public.testes`. Há uma placa física por conexão, com um token compartilhado pelos dois pinos.
 
@@ -111,7 +114,8 @@ A migration já inclui a sensibilidade, autorização por proprietário, registr
 | `frontend/src/components/PlayerRanking.tsx` | Ranking de jogadores. |
 | `frontend/src/hooks/useCrossyRanking.ts` | Leitura e gravação do ranking compartilhado ou local. |
 | `frontend/src/components/CrossyEspSetup.tsx` | Wi-Fi, GPIO, sensibilidade, token e download de `config.h`. |
-| `frontend/src/hooks/useCrossyEsp.ts` | Sessão, conexão da placa, Realtime e proteção contra repetição. |
+| `frontend/src/hooks/useCrossyEsp.ts` | Sessão, WebSocket de baixa latência, fallback Realtime e proteção contra repetição. |
+| `websocket-gateway.mjs` | Autenticação, salas WebSocket, entrega imediata e persistência assíncrona. |
 | `frontend/src/crossy/` | Adaptação do motor original para navegador. |
 | `frontend/src/lib/credits.ts` | **Edite aqui os créditos e os nomes da equipe.** |
 | `frontend/src/crossy.css` | Estilos do jogo e das janelas. |
