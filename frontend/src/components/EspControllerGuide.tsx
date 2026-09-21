@@ -33,9 +33,23 @@ export function EspControllerGuide({ multiplayer }: { multiplayer: boolean }) {
         dados, sem certificado.
       </p>
       <dl className="guide-pins">
-        <div><dt>GPIO 34</dt><dd>Botão do jogador 1</dd></div>
-        <div><dt>GPIO 35</dt><dd>Botão do jogador 2</dd></div>
+        <div>
+          <dt>GPIO 34</dt>
+          <dd>Botão do jogador 1</dd>
+          <dd className="small">Simula a tecla ESPAÇO</dd>
+          <dd className="small">LED no GPIO 32</dd>
+        </div>
+        <div>
+          <dt>GPIO 35</dt>
+          <dd>Botão do jogador 2</dd>
+          <dd className="small">Simula a tecla ENTER</dd>
+          <dd className="small">LED no GPIO 33</dd>
+        </div>
       </dl>
+      <p>
+        Cada botão tem um LED que funciona ao contrário: fica <strong>aceso esperando</strong> o
+        toque e <strong>apaga enquanto está apertado</strong>. De longe dá para ver de quem é a vez.
+      </p>
       <p>
         {multiplayer
           ? 'Os dois botões estão ativos nesta partida: cada um move o seu personagem.'
@@ -75,6 +89,11 @@ export function EspControllerGuide({ multiplayer }: { multiplayer: boolean }) {
       <p className="small">
         Sem o resistor o pino fica solto, pega ruído do ambiente e o personagem anda sozinho. Com
         ele, o pino fica em 0 V parado e vai a 3,3 V só enquanto o botão estiver apertado.
+      </p>
+      <p>
+        O LED de cada botão vai no <code>GPIO 32</code> (ou <code>33</code>), com um resistor de
+        <code>220 Ω</code> em série até o <code>GND</code> — a não ser que o LED do botão já venha
+        com o resistor dele.
       </p>
     </details>
   </div>;

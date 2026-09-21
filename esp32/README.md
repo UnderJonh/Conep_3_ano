@@ -1,51 +1,94 @@
-# Firmware ESP32 · Crossy Road
+# Firmware ESP32 · Controle do Crossy Road
 
-Uma única placa lê dois sensores, detecta as pisadas localmente e envia comandos por uma conexão WebSocket persistente. Cada sensor controla um jogador.
+A placa é só um controle de dois botões iluminados. Não usa Wi-Fi, nuvem, banco de dados nem certificado: liga no computador pelo cabo USB e o navegador lê a porta serial pela Web Serial API.
 
 ## Ligações
 
-| Sensor | Sinal padrão | Alimentação |
-| --- | --- | --- |
-| Jogador 1 | GPIO 34 | 3V3 e GND |
-| Jogador 2 | GPIO 35 | 3V3 e GND |
+| Jogador | Botão | LED do botão | Tecla que o jogo simula |
+| --- | --- | --- | --- |
+| 1 | GPIO 34 | GPIO 32 | `ESPAÇO` |
+| 2 | GPIO 35 | GPIO 33 | `ENTER` |
 
-Use entradas ADC1 diferentes e GND comum. Nunca aplique mais de 3,3 V aos GPIOs.
+### Botão
 
-## Dependência da Arduino IDE
-
-Instale pelo Library Manager a biblioteca **WebSockets**, de Markus Sattler (`arduinoWebSockets`). O suporte a Wi-Fi, ADC e TLS já faz parte do pacote da placa ESP32.
-
-## Configuração
-
-Baixe `config.h` na janela de configuração do jogo e coloque-o em `esp32/sketch/`. O arquivo contém:
-
-- Wi-Fi 2,4 GHz;
-- host, porta e caminho do gateway WebSocket;
-- ID da conexão e token do dispositivo;
-- GPIO de cada jogador;
-- limiar de força utilizado pela detecção local.
-
-Ao baixar o arquivo pelo site publicado, o domínio WebSocket é preenchido automaticamente com o domínio do site. Se usar o frontend local, configure `VITE_WS_URL` com um endereço que o ESP32 consiga alcançar.
-
-## Funcionamento
-
-1. O ESP32 conecta ao Wi-Fi e sincroniza o relógio para validar o certificado TLS.
-2. Abre `wss://<domínio>/ws` uma única vez e autentica com o token da placa.
-3. Lê os sensores a cada 50 ms.
-4. Uma tensão acima do limiar inicia a pisada; o retorno a 0,25 V conclui o pulso.
-5. O firmware envia imediatamente um pacote `command` com jogador, sessão, sequência e pico de tensão.
-6. A cada 500 ms envia telemetria leve para atualizar os indicadores do navegador.
-
-Não há fila de amostras antigas. Se o socket estiver desconectado, comandos são descartados para não movimentar o personagem atrasado após a reconexão.
-
-## Monitor Serial
-
-Uma inicialização normal mostra:
+`GPIO 34` e `35` são **só de entrada e não têm resistor interno**. Cada botão precisa do seu resistor de pull-down externo:
 
 ```text
-[WS] Conectado. Autenticando dispositivo...
-[WS] WebSocket autenticado. Controle pronto.
-[CTRL] Jogador 1 | seq=1 | pico=2.571 V
+3V3 ---- botão ----+---- GPIO 34 (ou 35)
+                   |
+                  10k
+                   |
+                  GND
 ```
 
-Se aparecer `Dispositivo nao autorizado`, gere e grave um novo `config.h`. Se a conexão TLS falhar, confirme o domínio público e atualize `certificados.h` caso a autoridade certificadora do provedor tenha mudado.
+Sem o resistor o pino fica solto, pega ruído do ambiente e o personagem anda sozinho. Com ele, o pino fica em 0 V parado e vai a 3,3 V só enquanto o botão estiver apertado.
+
+### LED
+
+O LED é o **contrário** do botão: fica aceso esperando o toque e apaga enquanto o botão está apertado.
+
+| Botão | Pino do botão lê | LED |
+| --- | --- | --- |
+| Solto | `0` | Aceso (`1`) |
+| Apertado | `1` | Apagado (`0`) |
+
+Um GPIO do ESP32 entrega no máximo ~20 mA, então o LED precisa de resistor em série — a não ser que o LED que vem dentro do botão já tenha um:
+
+```text
+GPIO 32 (ou 33) ---- 220R ---- LED ---- GND
+```
+
+Se o botão for de 5 V ou 12 V, não ligue direto no GPIO: use um transistor ou um módulo de relé.
+
+Nunca aplique mais de 3,3 V aos GPIOs. Use GND comum.
+
+## Dependências
+
+Nenhuma biblioteca externa. Basta o pacote da placa ESP32 instalado na Arduino IDE.
+
+## Como gravar
+
+1. Abra `esp32/sketch/sketch.ino` na Arduino IDE.
+2. Selecione sua placa ESP32 e a porta USB.
+3. Grave o firmware.
+4. Abra o Monitor Serial em **115200 baud**.
+
+No boot a placa se apresenta e explica a ligação. Os dois LEDs acendem. Apertando um botão o LED dele apaga e aparece `P1` ou `P2`.
+
+## Protocolo da serial
+
+115200 baud, uma mensagem por linha:
+
+| Mensagem | Significado |
+| --- | --- |
+| `ID CROSSY-CONTROLE v1` | Identificação. Enviada no boot e sempre que a placa recebe `?`. |
+| `P1` | Botão do jogador 1. O navegador simula a tecla `ESPAÇO`. |
+| `P2` | Botão do jogador 2. O navegador simula a tecla `ENTER`. |
+| `# ...` | Comentário para humano ler. O navegador ignora. |
+
+A placa não manda tecla nenhuma: ela só avisa qual botão foi apertado. Quem transforma `P1` em `ESPAÇO` é o site, que já usa essas duas teclas no multiplayer local.
+
+O comando só sai na **descida do botão**, nunca enquanto ele fica segurado. Um toque, um comando.
+
+## Ajustes
+
+Todas as constantes ficam no topo do `sketch.ino`:
+
+| Constante | Padrão | Para quê |
+| --- | --- | --- |
+| `PINO_BOTAO_1` / `PINO_BOTAO_2` | `34` / `35` | GPIO de cada botão. |
+| `PINO_LED_1` / `PINO_LED_2` | `32` / `33` | GPIO do LED de cada botão. |
+| `DEBOUNCE` | `30` ms | Tempo de contato estável antes do toque valer. Aumente se um aperto virar dois. |
+| `INTERVALO_ESTADO` | `5000` ms | Intervalo das linhas `#` de status. |
+| `LOG_ESTADO` | `1` | `0` desliga as linhas de status. |
+
+## Se não funcionar
+
+| Sintoma | Causa provável |
+| --- | --- |
+| O personagem anda sozinho | Falta o resistor de pull-down de 10 kΩ no botão. |
+| Um aperto move duas vezes | Aumente `DEBOUNCE`. |
+| O LED nunca acende | Polaridade invertida, ou falta o resistor em série. |
+| O LED fica aceso mesmo apertando | O botão não está chegando no GPIO. Confira no Monitor Serial se aparece `P1`/`P2`. |
+| Nada aparece no Monitor Serial | Baud errado (tem que ser 115200) ou porta errada. |
+| Aparece `P1`/`P2` no monitor mas o jogo não anda | O Monitor Serial está ocupando a porta. Feche-o antes de conectar pelo navegador. |

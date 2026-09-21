@@ -76,20 +76,18 @@ Esta migration é uma base para banco vazio. Para **refazer do zero o projeto ex
 
 `supabase/rebuild.sql` é gerado a partir da migration; depois de alterar a migration, atualize o arquivo completo com `powershell -File supabase/rebuild.ps1`.
 
-## Configurar uma placa
+## Montar o controle
 
-1. Clique na **engrenagem**, ao lado de **Créditos**. O jogo pausa enquanto a configuração está aberta.
-2. Informe a rede **Wi-Fi 2.4 GHz**, a senha e dois GPIOs ADC1 diferentes: jogador 1 no **34** e jogador 2 no **35** por padrão.
-3. Ajuste a **força mínima da pisada** e clique em **Salvar força mínima**. O padrão é **1,50 V**; o ajuste vai de **0,60 a 3,30 V**.
-4. Clique em **Gerar token da placa** e em **Baixar config.h**.
-5. Coloque o `config.h` baixado dentro de `esp32/sketch/`. Essa pasta já contém `sketch.ino` e `certificados.h`; abra `esp32/sketch/sketch.ino` na Arduino IDE e grave o firmware.
-6. Instale a biblioteca **WebSockets**, de Markus Sattler, na Arduino IDE.
-7. Abra o Monitor Serial em **115200 baud**. `WebSocket autenticado` confirma a conexão. A janela do jogo mostra a tensão dos dois sensores.
-8. Feche a configuração e pise forte para começar. Cada pisada completa avança somente o jogador ligado àquele pino.
+A placa é só um controle de dois botões ligado por cabo USB. Não usa Wi-Fi, nuvem nem certificado.
 
-A senha do Wi-Fi e o token ficam em memória durante a página e no `config.h` baixado; não são gravados no armazenamento local pelo frontend. Fechar e reabrir a janela preserva os campos durante essa sessão. Após recarregar a página, use o arquivo salvo ou substitua o token para baixar outra configuração. Substituir o token revoga o anterior. O arquivo é ignorado pelo Git.
+1. Ligue cada botão assim: um lado no **3V3**, o outro no **GPIO 34** (jogador 1) ou **GPIO 35** (jogador 2), e um resistor de **10 kΩ** desse mesmo lado até o **GND**.
+2. Ligue o LED de cada botão no **GPIO 32** (jogador 1) ou **GPIO 33** (jogador 2), com um resistor de **220 Ω** em série até o **GND**. O LED fica aceso esperando e apaga enquanto o botão está apertado.
+3. Abra `esp32/sketch/sketch.ino` na Arduino IDE, selecione a placa e a porta USB e grave o firmware. Nenhuma biblioteca externa é necessária.
+4. Abra o Monitor Serial em **115200 baud**. A placa se apresenta com `ID CROSSY-CONTROLE v1` e mostra `P1` ou `P2` a cada toque.
+5. Feche o Monitor Serial, abra o jogo e clique na **engrenagem** para ver a aba do controle.
 
-Depois de configurar, a conexão volta automaticamente ao recarregar o jogo no mesmo navegador. Limpar os dados do site perde a identidade anônima associada à placa: gere uma configuração nova nesse caso.
+Os pinos 34 e 35 são só de entrada e não têm resistor interno: sem o pull-down de 10 kΩ o pino flutua e o personagem anda sozinho. No jogo, o botão do jogador 1 simula a tecla **ESPAÇO** e o do jogador 2 simula **ENTER** — as mesmas do multiplayer local. Detalhes de ligação, protocolo e diagnóstico ficam em [`esp32/README.md`](esp32/README.md).
+
 
 ## Regra da pisada
 
@@ -113,15 +111,14 @@ A migration já inclui a sensibilidade, autorização por proprietário, registr
 | `frontend/src/components/CrossyApp.tsx` | Jogo, pontuação, janela de novo recorde, reinício e controles. |
 | `frontend/src/components/PlayerRanking.tsx` | Ranking de jogadores. |
 | `frontend/src/hooks/useCrossyRanking.ts` | Leitura e gravação do ranking compartilhado ou local. |
-| `frontend/src/components/CrossyEspSetup.tsx` | Wi-Fi, GPIO, sensibilidade, token e download de `config.h`. |
+| `frontend/src/components/EspControllerGuide.tsx` | Aba que explica o projeto e como o controle funciona. |
 | `frontend/src/hooks/useCrossyEsp.ts` | Sessão, WebSocket de baixa latência, fallback Realtime e proteção contra repetição. |
 | `websocket-gateway.mjs` | Autenticação, salas WebSocket, entrega imediata e persistência assíncrona. |
 | `frontend/src/crossy/` | Adaptação do motor original para navegador. |
 | `frontend/src/lib/credits.ts` | **Edite aqui os créditos e os nomes da equipe.** |
 | `frontend/src/crossy.css` | Estilos do jogo e das janelas. |
-| `esp32/sketch/sketch.ino` | Firmware comentado de uma placa. |
-| `esp32/sketch/certificados.h` | Certificados públicos usados na conexão HTTPS. |
-| `esp32/README.md` | Documentação simples do firmware, circuito e diagnóstico. |
+| `esp32/sketch/sketch.ino` | Firmware do controle: dois botões e a porta serial. |
+| `esp32/README.md` | Ligação dos botões, protocolo da serial e diagnóstico. |
 
 ## Verificação
 
