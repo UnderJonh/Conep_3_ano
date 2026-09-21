@@ -26,6 +26,6 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "2.116.0",
-    "ws": "8.18.3"
+    "ws": "8.21.3"
   }
 }
