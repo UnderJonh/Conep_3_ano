@@ -2,7 +2,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
-import { attachWebSocketGateway } from './websocket-gateway.mjs';
+import { attachWebSocketGateway } from './frontend/websocket-gateway.mjs';
 
 const root = resolve('frontend/dist');
 const port = Number.parseInt(process.env.PORT ?? '3000', 10);

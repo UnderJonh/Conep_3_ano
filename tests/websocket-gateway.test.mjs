@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import test from 'node:test';
 import { WebSocket } from 'ws';
-import { attachWebSocketGateway } from '../websocket-gateway.mjs';
+import { attachWebSocketGateway } from '../frontend/websocket-gateway.mjs';
 
 const TEST_ID = '11111111-1111-4111-8111-111111111111';
 const TOKEN = 'a'.repeat(64);

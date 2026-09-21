@@ -169,3 +169,5 @@ export function attachWebSocketGateway(server, supabase, { logger = console } = 
   sockets.on('close', () => clearInterval(heartbeat));
   return sockets;
 }
+
+
