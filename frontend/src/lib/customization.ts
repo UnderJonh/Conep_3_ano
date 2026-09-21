@@ -1,6 +1,6 @@
 export const characters = [
   { id: 'chicken', name: 'Galinha' },
-  { id: 'bacon', name: 'Toucinho' },
+  { id: 'bacon', name: 'Midas' },
   { id: 'avocoder', name: 'Abacodificador' },
   { id: 'wheeler', name: 'Rodinhas' },
   { id: 'palmer', name: 'Palmeiro' },

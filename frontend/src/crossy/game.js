@@ -7,6 +7,17 @@ import { disposeAudio, pauseGameAudio } from './audio';
 import { TweenMax } from 'gsap';
 
 let models;
+
+const COMPACT_DESKTOP_MIN_WIDTH = 768;
+const COMPACT_DESKTOP_REFERENCE_HEIGHT = 900;
+const COMPACT_DESKTOP_MIN_CAMERA_SCALE = 0.8;
+
+function cameraZoom(width, height, scale, viewportWidth = width) {
+  const compactDesktopScale = viewportWidth >= COMPACT_DESKTOP_MIN_WIDTH
+    ? Math.max(COMPACT_DESKTOP_MIN_CAMERA_SCALE, Math.min(1, height / COMPACT_DESKTOP_REFERENCE_HEIGHT))
+    : 1;
+  return Math.min(width, height) * scale * compactDesktopScale / 4;
+}
 export async function createGame(canvas, callbacks, appearance = { character: 'chicken', color: '#ffffff' }) {
   models ??= ModelLoader.loadModels();
   await models;
@@ -28,7 +39,7 @@ export async function createGame(canvas, callbacks, appearance = { character: 'c
   const updateScale = engine.camera.updateScale;
   engine.camera.updateScale = dimensions => {
     updateScale(dimensions);
-    engine.camera.zoom = Math.min(dimensions.width, dimensions.height) * dimensions.scale / 4;
+    engine.camera.zoom = cameraZoom(dimensions.width, dimensions.height, dimensions.scale);
     engine.camera.updateProjectionMatrix();
   };
   engine.init();
@@ -169,7 +180,7 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
       camera.right = viewWidth * scale;
       camera.top = viewHeight * scale;
       camera.bottom = -(viewHeight * scale);
-      camera.zoom = Math.min(viewWidth, viewHeight) * scale / 4;
+      camera.zoom = cameraZoom(viewWidth, viewHeight, scale, width);
       camera.updateProjectionMatrix();
     }
   }

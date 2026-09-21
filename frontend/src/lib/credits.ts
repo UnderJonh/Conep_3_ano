@@ -6,23 +6,23 @@ export const credits = {
   team: [
     {
       name: 'João Augusto Aragão Fagundes',
-      role: 'Responsável pelo desenvolvimento do jogo, por parte da ideia técnica e pelo desenvolvimento da parte física do projeto.',
+      role: 'Responsável por parte do desenvolvimento do jogo (adições e modificações de coisas), por parte da ideia técnica',
     },
     {
       name: 'Raquel de Almeida Azevedo',
-      role: 'Responsável por parte do desenvolvimento da parte física do projeto.',
+      role: 'Responsável por parte da ideia técnica',
     },
     {
       name: 'Suzana Souza de Sales',
-      role: 'Responsável por parte do desenvolvimento da parte física do projeto.',
+      role: 'Responsável por parte da ideia técnica',
     },
     {
       name: 'Samuel Coutinho Vilaça',
-      role: 'Responsável por parte do desenvolvimento da parte física do projeto.',
+      role: 'Responsável por parte da ideia técnica, e por desenvolvimento da parte física do projeto. (Maior parte fisca)',
     },
     {
       name: 'Davi Menezes Martins França Mosca',
-      role: 'Responsável por parte do desenvolvimento da parte física do projeto.',
+      role: 'Responsável por parte da ideia técnica',
     },
   ],
   original: 'Jogo original: Expo Crossy Road, por Evan Bacon (licença MIT).',

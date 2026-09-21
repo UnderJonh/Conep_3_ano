@@ -66,6 +66,27 @@ test('mundo mantém terreno e caminho livre por 2.000 faixas, inclusive sequênc
   expect(errors).toEqual([]);
 });
 
+test('câmera mantém o personagem inteiro em desktops com pouca altura', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  await exposeEngine(page);
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Mover galinha para frente' })).toBeVisible();
+
+  const compactZoom = await page.evaluate(() => (window as any).__crossyQA.camera.zoom);
+  expect(compactZoom).toBeLessThan(768 / 4);
+  await page.keyboard.press('Space');
+  await expect(page.getByLabel('Pontuação', { exact: true })).toHaveText('1');
+  await page.screenshot({ path: join(directory, 'camera-compact-desktop.png') });
+
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect.poll(() => page.evaluate(() => (window as any).__crossyQA.camera.zoom)).toBe(250);
+  await page.screenshot({ path: join(directory, 'camera-standard-desktop.png') });
+  expect(errors).toEqual([]);
+});
+
 test('sons próprios acompanham personagem e música tem loop e controle independente', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
