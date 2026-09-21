@@ -11,11 +11,24 @@ test('jogo 3D abre direto, avança uma vez por tecla e mostra créditos', async 
   await expect(page).toHaveTitle('Crossy Road · CONEP');
   await expect(page.getByRole('button', { name: 'Mover galinha para frente' })).toBeVisible();
   await expect(page.getByAltText('Crossy Road')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Configurar ESP32' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'O controle ESP32' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Personalizar personagem' })).toBeVisible();
-  const espButton = page.getByRole('button', { name: 'Configurar ESP32' });
+  const espButton = page.getByRole('button', { name: 'O controle ESP32' });
   await expect(espButton).toHaveText('');
   await expect(espButton.locator('+ button')).toHaveText('Créditos');
+  await espButton.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'O controle ESP32' })).toBeVisible();
+  for (const titulo of ['O que a gente queria fazer', 'Por que não deu certo', 'Como está agora', 'Como vai funcionar']) {
+    await expect(page.getByRole('heading', { name: titulo, exact: true })).toBeVisible();
+  }
+  await expect(page.getByText('Botão do jogador 1', { exact: true })).toBeVisible();
+  await expect(page.getByText('Botão do jogador 2', { exact: true })).toBeVisible();
+  await page.screenshot({ path: `${process.env.TEMP}/conep-crossy-qa/aba-controle.png` });
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  // Fechar com Escape devolve o foco ao botão, e o jogo ignora teclas com um botão focado.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.keyboard.down('Space');
   await expect(page.getByLabel('Pontuação')).toHaveText('1');
   await page.keyboard.down('Space'); // browser repeat must not move again

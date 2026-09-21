@@ -359,6 +359,59 @@ label input,label select {
 .esp-setup li {
   margin:8px 0
 }
+.controller-guide .guide-step {
+  padding-top:16px;
+  border-top:1px solid #d9dfd0
+}
+.controller-guide .guide-step:first-child {
+  padding-top:0;
+  border-top:0
+}
+.controller-guide h2 {
+  font-size:15px;
+  margin:0 0 4px;
+  color:#42682d
+}
+.controller-guide .guide-step-fail h2 {
+  color:#8a5a2b
+}
+.controller-guide ul {
+  padding-left:20px;
+  line-height:1.6;
+  margin:12px 0
+}
+.controller-guide li {
+  margin:8px 0
+}
+.controller-guide code {
+  background:#e9efdf;
+  border-radius:4px;
+  padding:1px 5px;
+  font-size:12px
+}
+.guide-pins {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin:16px 0
+}
+.guide-pins > div {
+  background:#e9efdf;
+  border-radius:6px;
+  padding:12px 14px
+}
+.guide-pins dt {
+  font-weight:700;
+  font-size:13px
+}
+.guide-pins dd {
+  margin:2px 0 0;
+  font-size:12px;
+  color:#62715c
+}
+@media (max-width:520px) {
+  .guide-pins { grid-template-columns:1fr }
+}
 .credits-content h2 {
   font-size:18px
 }
