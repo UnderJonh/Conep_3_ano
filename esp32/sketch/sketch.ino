@@ -5,8 +5,8 @@ unsigned long ultimoLow2 = 0;
 
 void setup() {
   Serial.begin(115200);
-  pinMode(25, INPUT_PULLUP);
-  pinMode(26, INPUT_PULLUP);
+  pinMode(25, INPUT);
+  pinMode(26, INPUT);
   pinMode(32, OUTPUT);
   pinMode(33, OUTPUT);
   digitalWrite(32, HIGH);

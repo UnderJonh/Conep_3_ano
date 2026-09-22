@@ -239,6 +239,10 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
 
   function forward(playerNumber) {
     const index = playerNumber - 1;
+    if (states.every(state => state === 'over')) {
+      if (playerNumber === 1 && !paused && !disposed) restart();
+      return;
+    }
     if (paused || disposed || states[index] === 'over') return;
     if (states[index] === 'home') {
       states[index] = 'playing';
@@ -248,24 +252,26 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
     pending[index] = Math.min(pending[index] + 1, 10);
   }
 
+  function restart() {
+    pending.fill(0);
+    players.forEach(player => { player.stopAnimations(); player.stopIdle(); });
+    states.fill('home');
+    viewOffsets.forEach(offset => { offset.x = 0; offset.z = 0; });
+    engine.init();
+    secondHero.reset();
+    secondHero.idle();
+    callbacks.onState(1, 'home');
+    callbacks.onState(2, 'home');
+    renderViews();
+  }
+
   resize();
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(canvas);
   frame();
   return {
     forward,
-    restart() {
-      pending.fill(0);
-      players.forEach(player => { player.stopAnimations(); player.stopIdle(); });
-      states.fill('home');
-      viewOffsets.forEach(offset => { offset.x = 0; offset.z = 0; });
-      engine.init();
-      secondHero.reset();
-      secondHero.idle();
-      callbacks.onState(1, 'home');
-      callbacks.onState(2, 'home');
-      renderViews();
-    },
+    restart,
     pause(value) {
       if (paused === value || disposed) return;
       paused = value;

@@ -220,8 +220,7 @@ export default function CrossyApp() {
     {!ready ? <div className="loading-game" role={loadError ? 'alert' : 'status'}>{loadError || 'Carregando o jogo…'}{loadError ? <button onClick={() => window.location.reload()}>Tentar novamente</button> : null}</div> : null}
     {mode === 'single' && state === 'over' ? <div className="game-over"><h1>Fim de jogo</h1><p>{score} {score === 1 ? 'passo' : 'passos'}</p><button onClick={() => game.current?.restart()}>Jogar novamente</button></div> : null}
     {mode === 'local' ? <div className="local-game-state">
-      {localStates.map((playerState, index) => playerState === 'over' ? <div key={index} className={`local-player-over player-${index + 1}`}><strong>Fim de jogo</strong><span>{localScores[index]} {localScores[index] === 1 ? 'passo' : 'passos'}</span></div> : null)}
-      {localStates.every(value => value === 'over') ? <button onClick={() => game.current?.restart()}>Jogar novamente</button> : null}
+      {localStates.map((playerState, index) => playerState === 'over' ? <div key={index} className={`local-player-over player-${index + 1}`} aria-label={`Fim de jogo do jogador ${index + 1}`}><strong>Fim de jogo</strong><span>{localScores[index]} {localScores[index] === 1 ? 'passo' : 'passos'}</span>{index === 0 && localStates[1] === 'over' ? <small>Jogador 1: aperte para reiniciar</small> : null}</div> : null)}
     </div> : null}
     <div className="game-toolbar">
       <button className="settings-icon" aria-label="Ranking de jogadores" title="Ranking de jogadores" onClick={() => { setModal('ranking'); void ranking.refresh(); }}>

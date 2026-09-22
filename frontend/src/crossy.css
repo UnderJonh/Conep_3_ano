@@ -633,15 +633,19 @@ label input,label select {
 }
 .local-player-over {
   position:absolute;
-  top:50%;
+  top:0;
+  bottom:0;
   width:50%;
   display:flex;
   flex-direction:column;
   align-items:center;
+  justify-content:center;
   gap:9px;
+  padding:24px;
+  text-align:center;
   color:#fff;
+  background:#203527;
   text-shadow:2px 2px #263822;
-  transform:translateY(-50%)
 }
 .local-player-over.player-1 { left:0 }
 .local-player-over.player-2 { left:50% }
@@ -649,14 +653,7 @@ label input,label select {
   font-family:Retro,Arial,sans-serif;
   font-size:clamp(20px,3vw,36px)
 }
-.local-game-state > button {
-  position:absolute;
-  left:50%;
-  bottom:90px;
-  transform:translateX(-50%);
-  pointer-events:auto
-}
-.local-game-state > button:active { transform:translate(-50%,2px) }
+.local-player-over small { font-size:14px }
 .crossy-dialog[data-modal=local] {
   width:min(960px,calc(100vw - 32px))
 }
@@ -840,8 +837,7 @@ label input,label select {
   left:0!important;
   width:100%;
   height:50%;
-  justify-content:center;
-  transform:none
+  bottom:auto
 }
 .local-player-over.player-1 { top:0 }
 .local-player-over.player-2 { top:50% }
