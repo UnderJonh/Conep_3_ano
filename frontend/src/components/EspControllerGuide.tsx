@@ -70,6 +70,7 @@ export function EspControllerGuide({ multiplayer, available, status, error, conn
       <h2>Como vai funcionar</h2>
       <ol>
         <li>Ligue a ESP32 no computador pelo cabo USB.</li>
+        <li>Feche o Monitor Serial e o Plotter Serial da Arduino IDE.</li>
         <li>Abra este site e clique em <strong>Conectar controle</strong>.</li>
         <li>O navegador pergunta qual porta usar. Escolha a da ESP32.</li>
         <li>Apertou o botão, a placa manda <code>P1</code> ou <code>P2</code> pelo cabo e o personagem anda.</li>

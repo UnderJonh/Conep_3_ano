@@ -4,8 +4,12 @@ import { tmpdir } from 'node:os';
 
 test('P1 e P2 do controle USB movem os jogadores correspondentes', async ({ page }) => {
   const errors: string[] = [];
+  const actions: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  page.on('console', entry => { if (entry.type() === 'error') errors.push(entry.text()); });
+  page.on('console', entry => {
+    if (entry.type() === 'error') errors.push(entry.text());
+    if (entry.type() === 'info' && entry.text().startsWith('[ESP32]')) actions.push(entry.text());
+  });
   await page.route('**/rest/v1/crossy_ranking*', route => route.fulfill({ json: [] }));
   await page.addInitScript(() => {
     let input: ReadableStreamDefaultController<Uint8Array>;
@@ -40,17 +44,40 @@ test('P1 e P2 do controle USB movem os jogadores correspondentes', async ({ page
 
   await page.evaluate(() => (window as Window & { emitSerial: (text: string) => void }).emitSerial('ID CROSSY-CONTROLE v1\nP'));
   await expect(one).toHaveText('0');
-  await page.evaluate(() => (window as Window & { emitSerial: (text: string) => void }).emitSerial('1\nP1\nP2\n'));
+  await page.evaluate(() => (window as Window & { emitSerial: (text: string) => void }).emitSerial('1\nP2\n'));
   await expect(one).toHaveText('1');
   await expect(two).toHaveText('1');
-  await page.waitForTimeout(120);
-  await expect(one).toHaveText('1');
   await page.evaluate(() => (window as Window & { emitSerial: (text: string) => void }).emitSerial('P2\n'));
   await expect(two).toHaveText('2');
+  expect(actions).toEqual(['[ESP32] P1 → Espaço', '[ESP32] P2 → Enter', '[ESP32] P2 → Enter']);
   await page.screenshot({ path: join(tmpdir(), 'conep-usb-controller.png') });
 
   await page.getByRole('button', { name: 'O controle ESP32' }).click();
   await page.getByRole('button', { name: 'Desconectar controle' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Controle USB desconectado.' })).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('falha ao abrir a porta mostra como liberar a ESP32', async ({ page }) => {
+  await page.route('**/rest/v1/crossy_ranking*', route => route.fulfill({ json: [] }));
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'serial', {
+      configurable: true,
+      value: {
+        async requestPort() {
+          return {
+            readable: null,
+            async open() { throw new DOMException("Failed to execute 'open' on 'SerialPort': Failed to open serial port.", 'NetworkError'); },
+            async close() {},
+          };
+        },
+      },
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'O controle ESP32' }).click();
+  await page.getByRole('button', { name: 'Conectar controle' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Feche o Monitor Serial' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Conectar controle' })).toBeEnabled();
 });

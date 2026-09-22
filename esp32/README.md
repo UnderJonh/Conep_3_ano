@@ -61,7 +61,7 @@ No boot a placa envia sua identificação e acende os dois LEDs. Apertando um bo
 
 | Mensagem | Significado |
 | --- | --- |
-| `ID CROSSY-CONTROLE v1` | Identificação. Enviada no boot e sempre que a placa recebe `?`. |
+| `ID CROSSY-CONTROLE v1` | Identificação enviada no boot. |
 | `P1` | Botão do jogador 1. O navegador simula a tecla `ESPAÇO`. |
 | `P2` | Botão do jogador 2. O navegador simula a tecla `ENTER`. |
 
@@ -79,4 +79,5 @@ O comando sai na transição de **solto para apertado**, sem debounce na placa. 
 | O LED nunca acende | Polaridade invertida, ou falta o resistor em série. |
 | O LED fica aceso mesmo apertando | O botão não está chegando no GPIO. Confira no Monitor Serial se aparece `P1`/`P2`. |
 | Nada aparece no Monitor Serial | Baud errado (tem que ser 115200) ou porta errada. |
+| O navegador mostra `Failed to open serial port` | Feche o Monitor Serial, o Plotter Serial e outros programas ou abas que usam a porta. Selecione a porta da ESP32 e tente novamente. |
 | Aparece `P1`/`P2` no monitor mas o jogo não anda | O Monitor Serial está ocupando a porta. Feche-o antes de conectar pelo navegador. |

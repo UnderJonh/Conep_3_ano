@@ -14,6 +14,9 @@ function serialApi(): UsbSerial | undefined {
 }
 
 function message(error: unknown): string {
+  if (error instanceof Error && /Failed to (execute 'open'|open serial port)/i.test(error.message)) {
+    return 'Não foi possível abrir a porta da ESP32. Feche o Monitor Serial, o Plotter Serial e outras abas ou programas que estejam usando a porta. Selecione a porta da ESP32 e tente novamente.';
+  }
   return error instanceof Error ? error.message : 'Não foi possível usar a porta serial.';
 }
 
@@ -25,7 +28,6 @@ export function useUsbController(onPress: (player: Player) => void) {
   const port = useRef<UsbPort | null>(null);
   const readTask = useRef<Promise<void> | null>(null);
   const connecting = useRef(false);
-  const lastPressAt = useRef<[number, number]>([-Infinity, -Infinity]);
   const mounted = useRef(true);
   const [status, setStatus] = useState<Status>('disconnected');
   const [error, setError] = useState('');
@@ -55,7 +57,6 @@ export function useUsbController(onPress: (player: Player) => void) {
       await selected.open({ baudRate: 115200 });
       if (generation.current !== current) { await selected.close(); return; }
       port.current = selected;
-      lastPressAt.current = [-Infinity, -Infinity];
       setStatus('connected');
 
       const activePort = selected;
@@ -80,9 +81,7 @@ export function useUsbController(onPress: (player: Player) => void) {
                 const command = line.trim();
                 const player = command === 'P1' ? 1 : command === 'P2' ? 2 : null;
                 if (!player) continue;
-                const now = performance.now();
-                if (now - lastPressAt.current[player - 1] < 80) continue;
-                lastPressAt.current[player - 1] = now;
+                console.info(`[ESP32] P${player} → ${player === 1 ? 'Espaço' : 'Enter'}`);
                 onPressRef.current(player);
               }
             }

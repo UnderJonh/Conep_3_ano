@@ -1,28 +1,27 @@
-const int pinosBotao[2] = {34, 35};
-const int pinosLed[2] = {32, 33};
-bool pressionado[2] = {false, false};
+bool anterior1 = false;
+bool anterior2 = false;
 
 void setup() {
   Serial.begin(115200);
-  for (int i = 0; i < 2; i++) {
-    pinMode(pinosBotao[i], INPUT);
-    pinMode(pinosLed[i], OUTPUT);
-    digitalWrite(pinosLed[i], HIGH);
-  }
+  pinMode(34, INPUT);
+  pinMode(35, INPUT);
+  pinMode(32, OUTPUT);
+  pinMode(33, OUTPUT);
+  digitalWrite(32, HIGH);
+  digitalWrite(33, HIGH);
   Serial.println("ID CROSSY-CONTROLE v1");
 }
 
 void loop() {
-  while (Serial.available()) {
-    if (Serial.read() == '?') Serial.println("ID CROSSY-CONTROLE v1");
-  }
+  bool p1 = digitalRead(34) == HIGH;
+  bool p2 = digitalRead(35) == HIGH;
 
-  for (int i = 0; i < 2; i++) {
-    bool leitura = digitalRead(pinosBotao[i]) == HIGH;
-    if (leitura == pressionado[i]) continue;
+  digitalWrite(32, p1 ? LOW : HIGH);
+  digitalWrite(33, p2 ? LOW : HIGH);
 
-    pressionado[i] = leitura;
-    digitalWrite(pinosLed[i], leitura ? LOW : HIGH);
-    if (leitura) Serial.println(i == 0 ? "P1" : "P2");
-  }
+  if (p1 && !anterior1) Serial.println("P1"); // Espaço
+  if (p2 && !anterior2) Serial.println("P2"); // Enter
+
+  anterior1 = p1;
+  anterior2 = p2;
 }

@@ -1,8 +1,6 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
-import { createClient } from '@supabase/supabase-js';
-import { attachWebSocketGateway } from './frontend/websocket-gateway.mjs';
 
 const root = resolve('frontend/dist');
 const port = Number.parseInt(process.env.PORT ?? '3000', 10);
@@ -19,9 +17,6 @@ const types = {
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
 };
-
-const supabaseUrl = (process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? '').trim();
-const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim();
 
 if (!existsSync(join(root, 'index.html'))) {
   console.error('Build não encontrado. Execute npm run build antes de iniciar.');
@@ -48,14 +43,6 @@ const server = createServer((request, response) => {
   else createReadStream(file).pipe(response);
 });
 
-if (supabaseUrl && serviceKey) {
-  const supabase = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  attachWebSocketGateway(server, supabase);
-} else {
-  console.warn('Gateway WebSocket desativado: configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY para usá-lo.');
-}
 server.listen(port, '0.0.0.0', () => {
   console.log(`Crossy Road disponível na porta ${port}`);
 });

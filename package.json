@@ -15,8 +15,7 @@
     "build": "npm run build --workspace frontend",
     "start": "node server.mjs",
     "lint": "npm run typecheck --workspace frontend && deno check supabase/functions/receber-tensao/index.ts",
-    "test": "deno test supabase/functions/receber-tensao/handler.test.ts && npm run test:ws",
-    "test:ws": "node --test tests/websocket-gateway.test.mjs",
+    "test": "deno test supabase/functions/receber-tensao/handler.test.ts",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
@@ -25,7 +24,6 @@
     "supabase": "2.117.0"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.116.0",
-    "ws": "8.21.3"
+    "@supabase/supabase-js": "2.116.0"
   }
 }

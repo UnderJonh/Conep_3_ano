@@ -18,8 +18,6 @@ function validConfig() {
 
 export const configError = validConfig() ? null : 'Configure VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY no arquivo .env.local da raiz e reinicie o servidor.';
 export const supabase = configError ? null : createClient<Database>(url!, key!);
-export const apiUrl = url ? `${url.replace(/\/$/, '')}/functions/v1/receber-tensao` : '';
-
 export function client() {
   if (!supabase) throw new Error(configError ?? 'Supabase indisponível.');
   return supabase;
