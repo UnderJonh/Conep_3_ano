@@ -171,6 +171,10 @@ label input,label select {
   text-shadow:2px 2px #37120c;
   pointer-events:none
 }
+.crossy-app.mode-local .god-mode-indicator {
+  top:auto;
+  bottom:max(24px,env(safe-area-inset-bottom))
+}
 .loading-game,.game-over {
   position:absolute;
   inset:0;
@@ -835,6 +839,7 @@ label input,label select {
 }
 .crossy-app.mode-local .god-mode-indicator {
   top:12px;
+  bottom:auto;
   right:12px;
   left:auto;
   transform:none
