@@ -14,8 +14,8 @@
  *   botao solto    (0) -> LED aceso  (1)
  *   botao apertado (1) -> LED apagado (0)
  *
- * O LED muda INSTANTANEAMENTE quando o pino muda (feedback visual imediato).
- * O comando P1/P2 sai quando o botao estabiliza apos o debounce.
+ * O LED muda quando o pino muda (feedback visual imediato).
+ * O comando P1/P2 sai na transicao de solto para apertado, sem debounce.
  *
  * Ligacao do botao. GPIO 34 e 35 sao so de entrada e NAO tem resistor interno,
  * entao o resistor externo e obrigatorio:
@@ -45,7 +45,6 @@ const int PINO_LED_1 = 32;
 const int PINO_BOTAO_2 = 35;
 const int PINO_LED_2 = 33;
 
-const unsigned long DEBOUNCE = 30;            // ms de contato estavel antes de valer
 const unsigned long INTERVALO_ESTADO = 50;  // ms entre as linhas de status
 
 #define LOG_ESTADO 1  // 0 desliga as linhas "#" periodicas
@@ -58,19 +57,17 @@ struct Botao {
   int jogador;
   const char* tecla;  // tecla que o jogo simula quando este botao e apertado
   bool pressionado;
-  bool ultimaLeitura;
-  unsigned long mudouEm;
   uint32_t toques;
 };
 
 Botao botoes[2] = {
-  { PINO_BOTAO_1, PINO_LED_1, 1, "ESPACO", false, false, 0, 0 },
-  { PINO_BOTAO_2, PINO_LED_2, 2, "ENTER", false, false, 0, 0 },
+  { PINO_BOTAO_1, PINO_LED_1, 1, "ESPACO", false, 0 },
+  { PINO_BOTAO_2, PINO_LED_2, 2, "ENTER", false, 0 },
 };
 
 unsigned long ultimoEstado = 0;
 
-// LED muda INSTANTANEAMENTE com a leitura do pino (feedback visual imediato).
+// LED acompanha a leitura do pino.
 void atualizarLedImediato(int pinoLed, bool leitura) {
   digitalWrite(pinoLed, leitura ? LOW : HIGH);
 }
@@ -80,24 +77,12 @@ void enviarToque(Botao& botao) {
   Serial.printf("P%d\n", botao.jogador);
 }
 
-void lerBotao(Botao& botao, unsigned long agora) {
+void lerBotao(Botao& botao) {
   const bool leitura = digitalRead(botao.pino) == HIGH;
-
-  // LED atualiza IMEDIATAMENTE, sem esperar debounce.
-  if (leitura != botao.ultimaLeitura) {
-    atualizarLedImediato(botao.pinoLed, leitura);
-  }
-
-  // Comando espera pelo debounce para evitar repeticao.
-  if (leitura != botao.ultimaLeitura) {
-    botao.ultimaLeitura = leitura;
-    botao.mudouEm = agora;
-    return;
-  }
-  if (agora - botao.mudouEm < DEBOUNCE) return;
   if (leitura == botao.pressionado) return;
 
   botao.pressionado = leitura;
+  atualizarLedImediato(botao.pinoLed, leitura);
   if (botao.pressionado) enviarToque(botao);
 }
 
@@ -114,7 +99,7 @@ void logEstado() {
     (unsigned long)botoes[0].toques,
     botoes[1].pressionado ? "apertado" : "solto  ", botoes[1].pressionado ? 0 : 1,
     (unsigned long)botoes[1].toques,
-    millis() / 1000UL);
+    millis() / 1000);
 }
 
 void setup() {
@@ -141,7 +126,7 @@ void loop() {
   const unsigned long agora = millis();
 
   lerSerial();
-  for (Botao& botao : botoes) lerBotao(botao, agora);
+  for (Botao& botao : botoes) lerBotao(botao);
 
   if (LOG_ESTADO && agora - ultimoEstado >= INTERVALO_ESTADO) {
     ultimoEstado = agora;
