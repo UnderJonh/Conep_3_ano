@@ -1,4 +1,13 @@
-export function EspControllerGuide({ multiplayer }: { multiplayer: boolean }) {
+type Props = {
+  multiplayer: boolean;
+  available: boolean;
+  status: 'disconnected' | 'connecting' | 'connected' | 'disconnecting';
+  error: string;
+  connect(): Promise<void>;
+  disconnect(): Promise<void>;
+};
+
+export function EspControllerGuide({ multiplayer, available, status, error, connect, disconnect }: Props) {
   return <div className="esp-setup controller-guide">
     <section className="guide-step">
       <h2>O que a gente queria fazer</h2>
@@ -63,8 +72,15 @@ export function EspControllerGuide({ multiplayer }: { multiplayer: boolean }) {
         <li>Ligue a ESP32 no computador pelo cabo USB.</li>
         <li>Abra este site e clique em <strong>Conectar controle</strong>.</li>
         <li>O navegador pergunta qual porta usar. Escolha a da ESP32.</li>
-        <li>Apertou o botão, a placa manda um caractere pelo cabo e o personagem anda na hora.</li>
+        <li>Apertou o botão, a placa manda <code>P1</code> ou <code>P2</code> pelo cabo e o personagem anda.</li>
       </ol>
+      {available ? <>
+        <p role="status">{status === 'connected' ? 'Controle USB conectado.' : status === 'connecting' ? 'Conectando controle…' : status === 'disconnecting' ? 'Desconectando controle…' : 'Controle USB desconectado.'}</p>
+        {status === 'connected'
+          ? <button type="button" className="secondary-button" onClick={() => void disconnect()}>Desconectar controle</button>
+          : <button type="button" disabled={status !== 'disconnected'} onClick={() => void connect()}>Conectar controle</button>}
+      </> : <p role="alert" className="setup-error">Para conectar por USB, abra o site no Chrome ou Edge usando HTTPS ou localhost.</p>}
+      {error ? <p role="alert" className="setup-error">{error}</p> : null}
       <p>
         O caminho inteiro cabe em cima da mesa: <strong>botão → placa → cabo → navegador</strong>.
         Se alguma coisa travar, dá para apontar o dedo no elo com problema em vez de adivinhar.

@@ -9,6 +9,7 @@ import { CharacterCustomization } from './CharacterCustomization';
 import { LocalMultiplayerSetup } from './LocalMultiplayerSetup';
 import { PlayerRanking } from './PlayerRanking';
 import { useCrossyRanking } from '../hooks/useCrossyRanking';
+import { useUsbController } from '../hooks/useUsbController';
 import { playerNameLimit } from '../lib/ranking';
 import { recordProgress } from '../lib/recordProgress';
 import { errorMessage } from '../lib/supabase';
@@ -58,6 +59,7 @@ export default function CrossyApp() {
     else if (player === 1) (controller as GameController).forward();
   }, []);
   const forward = useCallback(() => { forwardPlayer(1); }, [forwardPlayer]);
+  const usb = useUsbController(forwardPlayer);
 
   useEffect(() => {
     let alive = true;
@@ -239,7 +241,7 @@ export default function CrossyApp() {
     <dialog className="crossy-dialog" data-modal={modal} aria-labelledby="dialog-title" onCancel={event => { event.preventDefault(); closeModal(); }} onClick={event => { if (event.target === event.currentTarget) { const bounds = event.currentTarget.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeModal(); } }}>
       <div className="dialog-heading"><h1 id="dialog-title">{modal === 'esp' ? 'O controle ESP32' : modal === 'customization' ? 'Personalizar personagem' : modal === 'local' ? 'Escolha o modo' : modal === 'ranking' ? 'Ranking de jogadores' : modal === 'record' ? 'Novo recorde!' : credits.title}</h1><button className="close-dialog" aria-label="Fechar" disabled={saving} onClick={closeModal}>×</button></div>
       <div className="dialog-content">
-        {modal === 'esp' ? <EspControllerGuide multiplayer={mode === 'local'} /> : null}
+        {modal === 'esp' ? <EspControllerGuide multiplayer={mode === 'local'} {...usb} /> : null}
         {modal === 'customization' ? <CharacterCustomization preferences={preferences} onChange={setPreferences} /> : null}
         {modal === 'local' ? <LocalMultiplayerSetup appearances={localAppearances} onChange={updateLocalAppearance} onStart={startLocalGame} onSinglePlayer={useSinglePlayer} /> : null}
         {modal === 'ranking' ? <PlayerRanking {...ranking} onRetry={() => { void ranking.refresh(); }} /> : null}
