@@ -111,6 +111,7 @@ export default class RailRoad extends Object3D {
         player.position.x < mesh.position.x + collisionBox &&
         player.position.x > mesh.position.x - collisionBox
       ) {
+        if (player.invincible) return;
         if (
           player.moving &&
           Math.abs(player.position.z - Math.round(player.position.z)) > 0.1

@@ -152,6 +152,25 @@ label input,label select {
   font-size:48px;
   text-shadow:3px 4px #253921
 }
+.god-mode-indicator {
+  position:absolute;
+  z-index:4;
+  top:max(24px,env(safe-area-inset-top));
+  left:50%;
+  transform:translateX(-50%);
+  padding:10px 14px 8px;
+  border:2px solid #fff2a8;
+  border-radius:6px;
+  color:#fff9c7;
+  background:#6d2518e6;
+  box-shadow:0 4px 0 #37120c,0 0 24px #ffca28aa;
+  font-family:Retro,Arial,sans-serif;
+  font-size:14px;
+  line-height:1;
+  letter-spacing:.06em;
+  text-shadow:2px 2px #37120c;
+  pointer-events:none
+}
 .loading-game,.game-over {
   position:absolute;
   inset:0;
@@ -810,6 +829,15 @@ label input,label select {
 .crossy-best {
   right:18px;
   top:20px
+}
+.god-mode-indicator {
+  top:76px
+}
+.crossy-app.mode-local .god-mode-indicator {
+  top:12px;
+  right:12px;
+  left:auto;
+  transform:none
 }
 .crossy-app.mode-local::after {
   top:50%;

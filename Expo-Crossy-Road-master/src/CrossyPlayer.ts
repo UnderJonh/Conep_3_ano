@@ -117,6 +117,7 @@ class PlayerPositionAnimation extends TimelineMax {
 
 export default class CrossyPlayer extends Group {
   animations = [];
+  invincible = false;
 
   _character;
   crown;

@@ -109,6 +109,7 @@ export default class Road extends Object3D {
         player.position.x < mesh.position.x + collisionBox &&
         player.position.x > mesh.position.x - collisionBox
       ) {
+        if (player.invincible) return;
         player.collideWithCar(this, car);
         this.onCollide(car, "feathers", "car", player);
       }

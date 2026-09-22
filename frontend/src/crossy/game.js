@@ -95,10 +95,16 @@ export async function createGame(canvas, callbacks, appearance = { character: 'c
       canvas.dataset.crowned = String(value);
       engine.renderer.render(engine.scene, engine.camera);
     },
+    setGodMode(value) {
+      if (disposed) return;
+      engine._hero.invincible = value;
+      canvas.dataset.godMode = String(value);
+    },
     resize: engine.updateScale,
     dispose() {
       disposed = true; engine.pause(); engine._hero.stopIdle(); engine._hero.stopAnimations();
       delete canvas.dataset.crowned;
+      delete canvas.dataset.godMode;
       engine.scene.traverse(node => {
         TweenMax.killTweensOf(node.position); TweenMax.killTweensOf(node.rotation); TweenMax.killTweensOf(node.scale);
       });
@@ -294,9 +300,15 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
       player.setColor(value.color);
       renderViews();
     },
+    setGodMode(value) {
+      if (disposed) return;
+      players.forEach(player => { player.invincible = value; });
+      canvas.dataset.godMode = String(value);
+    },
     resize,
     dispose() {
       disposed = true;
+      delete canvas.dataset.godMode;
       resizeObserver.disconnect();
       cancelAnimationFrame(raf);
       players.forEach(player => { player.stopIdle(); player.stopAnimations(); player.disposeMaterials(); player.disposeCrown(); });

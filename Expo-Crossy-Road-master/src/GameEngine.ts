@@ -68,6 +68,15 @@ export default class Engine {
   }
 
   onCollide = async (obstacle = {}, type = "feathers", collision, player = this._hero) => {
+    if (player?.invincible) {
+      if (type === "water") player.position.y = groundLevel;
+      if (!collision && (player.position.x < -5 || player.position.x > 5)) {
+        player.position.x = Math.max(-5, Math.min(5, player.position.x));
+        if (player.initialPosition) player.initialPosition.x = player.position.x;
+        if (player.targetPosition) player.targetPosition.x = player.position.x;
+      }
+      return;
+    }
     if (!player?.isAlive || (this._isPlayerStateEnded
       ? this._isPlayerStateEnded(player)
       : player === this._hero && this._isGameStateEnded())) {
@@ -150,6 +159,14 @@ export default class Engine {
   };
 
   checkIfUserHasFallenOutOfFrame = () => {
+    if (this._hero.invincible) {
+      if (this._hero.position.x < -5 || this._hero.position.x > 5) {
+        this._hero.position.x = Math.max(-5, Math.min(5, this._hero.position.x));
+        if (this._hero.initialPosition) this._hero.initialPosition.x = this._hero.position.x;
+        if (this._hero.targetPosition) this._hero.targetPosition.x = this._hero.position.x;
+      }
+      return;
+    }
     if (this.isGameEnded()) {
       return;
     }

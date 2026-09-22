@@ -26,6 +26,8 @@ export default function CrossyApp() {
   const modeRef = useRef<GameMode>('single');
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [godMode, setGodMode] = useState(false);
+  const godModeRef = useRef(false);
   const [score, setScore] = useState(0);
   const scoreRef = useRef(0);
   const runRecordRef = useRef(0);
@@ -60,6 +62,22 @@ export default function CrossyApp() {
   }, []);
   const forward = useCallback(() => { forwardPlayer(1); }, [forwardPlayer]);
   const usb = useUsbController(forwardPlayer);
+
+  useEffect(() => {
+    let sequence = '';
+    const activateGodMode = (event: KeyboardEvent) => {
+      if (event.repeat || event.ctrlKey || event.altKey || event.metaKey || event.key.length !== 1) return;
+      sequence = `${sequence}${event.key.toLowerCase()}`.slice(-3);
+      if (sequence !== 'god') return;
+      sequence = '';
+      if (godModeRef.current) return;
+      godModeRef.current = true;
+      setGodMode(true);
+      game.current?.setGodMode(true);
+    };
+    window.addEventListener('keydown', activateGodMode, { capture: true });
+    return () => { window.removeEventListener('keydown', activateGodMode, { capture: true }); };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -119,6 +137,7 @@ export default function CrossyApp() {
       controller = next;
       if (!alive) { next.dispose(); return; }
       game.current = next;
+      next.setGodMode(godModeRef.current);
       next.pause(!!modalRef.current || document.hidden);
       setReady(true);
     }).catch(err => { if (alive) setLoadError(err instanceof Error ? err.message : 'Não foi possível carregar o jogo.'); });
@@ -207,8 +226,9 @@ export default function CrossyApp() {
   }
 
   const localAppearances: [Appearance, Appearance] = [preferences, playerTwoAppearance];
-  return <main className={`crossy-app mode-${mode}`}>
+  return <main className={`crossy-app mode-${mode}`} data-god-mode={godMode ? 'active' : 'inactive'}>
     <canvas ref={canvas} className="game-canvas" aria-label="Cenário 3D do Crossy Road" />
+    {godMode ? <div className="god-mode-indicator" role="status" aria-live="polite">GOD MODE</div> : null}
     {ready && mode === 'single' && state !== 'over' ? <button className="game-touch" aria-label="Mover galinha para frente" onClick={forward} /> : null}
     {ready && mode === 'local' ? <div className="local-touch-controls"><button aria-label="Mover jogador 1 para frente" onClick={() => forwardPlayer(1)} /><button aria-label="Mover jogador 2 para frente" onClick={() => forwardPlayer(2)} /></div> : null}
     {ready && mode === 'single' && state === 'home' ? <div className="home-overlay"><img src={title} alt="Crossy Road" /><p>Pise forte para iniciar</p></div> : null}
