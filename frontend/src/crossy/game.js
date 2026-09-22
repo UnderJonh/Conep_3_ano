@@ -10,12 +10,12 @@ import { startingRow } from '../../../Expo-Crossy-Road-master/src/GameSettings';
 let models;
 
 const COMPACT_DESKTOP_MIN_WIDTH = 768;
-const COMPACT_DESKTOP_REFERENCE_HEIGHT = 900;
+const COMPACT_DESKTOP_REFERENCE_HEIGHT = 850;
 const COMPACT_DESKTOP_MIN_CAMERA_SCALE = 0.8;
 // Max visible half-width in world units. The terrain strips are 25 units wide
 // (-12.5 to 12.5) and the camera + world offset can shift up to ~4 units, so
 // 7.5 keeps a safe margin on every aspect ratio.
-const MAX_VISIBLE_HALF_WIDTH = 6.5;
+const MAX_VISIBLE_HALF_WIDTH = 9.5;
 
 function cameraZoom(width, height, scale, viewportWidth = width) {
   const compactDesktopScale = viewportWidth >= COMPACT_DESKTOP_MIN_WIDTH
