@@ -14,6 +14,9 @@
  *   botao solto    (0) -> LED aceso  (1)
  *   botao apertado (1) -> LED apagado (0)
  *
+ * O LED muda INSTANTANEAMENTE quando o pino muda (feedback visual imediato).
+ * O comando P1/P2 sai quando o botao estabiliza apos o debounce.
+ *
  * Ligacao do botao. GPIO 34 e 35 sao so de entrada e NAO tem resistor interno,
  * entao o resistor externo e obrigatorio:
  *
@@ -43,7 +46,7 @@ const int PINO_BOTAO_2 = 35;
 const int PINO_LED_2 = 33;
 
 const unsigned long DEBOUNCE = 30;            // ms de contato estavel antes de valer
-const unsigned long INTERVALO_ESTADO = 5000;  // ms entre as linhas de status
+const unsigned long INTERVALO_ESTADO = 50;  // ms entre as linhas de status
 
 #define LOG_ESTADO 1  // 0 desliga as linhas "#" periodicas
 
@@ -67,9 +70,9 @@ Botao botoes[2] = {
 
 unsigned long ultimoEstado = 0;
 
-// O LED e o inverso do botao: aceso enquanto ninguem aperta.
-void atualizarLed(const Botao& botao) {
-  digitalWrite(botao.pinoLed, botao.pressionado ? LOW : HIGH);
+// LED muda INSTANTANEAMENTE com a leitura do pino (feedback visual imediato).
+void atualizarLedImediato(int pinoLed, bool leitura) {
+  digitalWrite(pinoLed, leitura ? LOW : HIGH);
 }
 
 void enviarToque(Botao& botao) {
@@ -80,7 +83,12 @@ void enviarToque(Botao& botao) {
 void lerBotao(Botao& botao, unsigned long agora) {
   const bool leitura = digitalRead(botao.pino) == HIGH;
 
-  // Qualquer oscilacao reinicia a contagem do debounce.
+  // LED atualiza IMEDIATAMENTE, sem esperar debounce.
+  if (leitura != botao.ultimaLeitura) {
+    atualizarLedImediato(botao.pinoLed, leitura);
+  }
+
+  // Comando espera pelo debounce para evitar repeticao.
   if (leitura != botao.ultimaLeitura) {
     botao.ultimaLeitura = leitura;
     botao.mudouEm = agora;
@@ -90,7 +98,6 @@ void lerBotao(Botao& botao, unsigned long agora) {
   if (leitura == botao.pressionado) return;
 
   botao.pressionado = leitura;
-  atualizarLed(botao);
   if (botao.pressionado) enviarToque(botao);
 }
 
@@ -115,7 +122,7 @@ void setup() {
   for (Botao& botao : botoes) {
     pinMode(botao.pino, INPUT);
     pinMode(botao.pinoLed, OUTPUT);
-    atualizarLed(botao);  // comeca aceso, esperando o toque
+    atualizarLedImediato(botao.pinoLed, false);  // comeca aceso
   }
   delay(300);
 
