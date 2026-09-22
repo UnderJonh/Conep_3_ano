@@ -12,12 +12,19 @@ let models;
 const COMPACT_DESKTOP_MIN_WIDTH = 768;
 const COMPACT_DESKTOP_REFERENCE_HEIGHT = 900;
 const COMPACT_DESKTOP_MIN_CAMERA_SCALE = 0.8;
+// Max visible half-width in world units. The terrain strips are 25 units wide
+// (-12.5 to 12.5) and the camera + world offset can shift up to ~4 units, so
+// 7.5 keeps a safe margin on every aspect ratio.
+const MAX_VISIBLE_HALF_WIDTH = 7.5;
 
 function cameraZoom(width, height, scale, viewportWidth = width) {
   const compactDesktopScale = viewportWidth >= COMPACT_DESKTOP_MIN_WIDTH
     ? Math.max(COMPACT_DESKTOP_MIN_CAMERA_SCALE, Math.min(1, height / COMPACT_DESKTOP_REFERENCE_HEIGHT))
     : 1;
-  return Math.min(width, height) * scale * compactDesktopScale / 4;
+  const baseZoom = Math.min(width, height) * scale * compactDesktopScale / 4;
+  // Prevent ultrawide / very-wide windows from showing the world edges.
+  const minZoomForWidth = (width * scale) / MAX_VISIBLE_HALF_WIDTH;
+  return Math.max(baseZoom, minZoomForWidth);
 }
 export async function createGame(canvas, callbacks, appearance = { character: 'chicken', color: '#ffffff' }) {
   models ??= ModelLoader.loadModels();
