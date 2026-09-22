@@ -53,7 +53,7 @@ Nenhuma biblioteca externa. Basta o pacote da placa ESP32 instalado na Arduino I
 3. Grave o firmware.
 4. Abra o Monitor Serial em **115200 baud**.
 
-No boot a placa se apresenta e explica a ligação. Os dois LEDs acendem. Apertando um botão o LED dele apaga e aparece `P1` ou `P2`.
+No boot a placa envia sua identificação e acende os dois LEDs. Apertando um botão, o LED dele apaga e aparece `P1` ou `P2`.
 
 ## Protocolo da serial
 
@@ -64,22 +64,10 @@ No boot a placa se apresenta e explica a ligação. Os dois LEDs acendem. Aperta
 | `ID CROSSY-CONTROLE v1` | Identificação. Enviada no boot e sempre que a placa recebe `?`. |
 | `P1` | Botão do jogador 1. O navegador simula a tecla `ESPAÇO`. |
 | `P2` | Botão do jogador 2. O navegador simula a tecla `ENTER`. |
-| `# ...` | Comentário para humano ler. O navegador ignora. |
 
 A placa não manda tecla nenhuma: ela só avisa qual botão foi apertado. Quem transforma `P1` em `ESPAÇO` é o site, que já usa essas duas teclas no multiplayer local.
 
 O comando sai na transição de **solto para apertado**, sem debounce na placa. Enquanto o pino permanece em nível alto, não há novos comandos.
-
-## Ajustes
-
-Todas as constantes ficam no topo do `sketch.ino`:
-
-| Constante | Padrão | Para quê |
-| --- | --- | --- |
-| `PINO_BOTAO_1` / `PINO_BOTAO_2` | `34` / `35` | GPIO de cada botão. |
-| `PINO_LED_1` / `PINO_LED_2` | `32` / `33` | GPIO do LED de cada botão. |
-| `INTERVALO_ESTADO` | `50` ms | Intervalo das linhas `#` de status. |
-| `LOG_ESTADO` | `1` | `0` desliga as linhas de status. |
 
 ## Se não funcionar
 
@@ -87,7 +75,7 @@ Todas as constantes ficam no topo do `sketch.ino`:
 | --- | --- |
 | O personagem anda sozinho | Falta o resistor de pull-down de 10 kΩ no botão. |
 | Um aperto move duas vezes | O contato pode oscilar ao apertar ou soltar; confira os eventos `P1`/`P2` no Monitor Serial e o tratamento no jogo. |
-| O monitor mostra `apertado` após soltar | O GPIO continua em nível alto. Confira o resistor de pull-down de 10 kΩ e a ligação do botão. |
+| O LED continua apagado após soltar | O GPIO continua em nível alto. Confira o resistor de pull-down de 10 kΩ e a ligação do botão. |
 | O LED nunca acende | Polaridade invertida, ou falta o resistor em série. |
 | O LED fica aceso mesmo apertando | O botão não está chegando no GPIO. Confira no Monitor Serial se aparece `P1`/`P2`. |
 | Nada aparece no Monitor Serial | Baud errado (tem que ser 115200) ou porta errada. |
