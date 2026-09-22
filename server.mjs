@@ -22,13 +22,6 @@ const types = {
 
 const supabaseUrl = (process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? '').trim();
 const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim();
-if (!supabaseUrl || !serviceKey) {
-  console.error('Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no servidor.');
-  process.exit(1);
-}
-const supabase = createClient(supabaseUrl, serviceKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
 
 if (!existsSync(join(root, 'index.html'))) {
   console.error('Build não encontrado. Execute npm run build antes de iniciar.');
@@ -55,7 +48,14 @@ const server = createServer((request, response) => {
   else createReadStream(file).pipe(response);
 });
 
-attachWebSocketGateway(server, supabase);
+if (supabaseUrl && serviceKey) {
+  const supabase = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  attachWebSocketGateway(server, supabase);
+} else {
+  console.warn('Gateway WebSocket desativado: configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY para usá-lo.');
+}
 server.listen(port, '0.0.0.0', () => {
-  console.log(`Voltage Run disponível na porta ${port}`);
+  console.log(`Crossy Road disponível na porta ${port}`);
 });

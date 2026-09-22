@@ -13,7 +13,7 @@ npm run dev
 
 Abra **http://127.0.0.1:5173/**. O jogo abre diretamente, inclusive sem Supabase. No modo de um jogador, teste tocando na tela ou pressionando **espaço / seta para cima**; segurar a tecla não repete passos. Ao colidir, clique em **Jogar novamente**.
 
-Para usar o ESP, configure na raiz `.env.local` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` (modelo em `.env.example`). Use somente a chave pública no frontend. O servidor publicado também exige `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`; a chave secreta nunca pode usar o prefixo `VITE_`.
+O controle ESP32 por USB funciona sem Supabase. Para usar o ranking compartilhado, configure na raiz `.env.local` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` (modelo em `.env.example`). Use somente a chave pública no frontend. O gateway WebSocket legado usa `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` no servidor; a chave secreta nunca pode usar o prefixo `VITE_`.
 
 ## Multiplayer local
 
@@ -62,7 +62,7 @@ npx supabase db push
 npx supabase functions deploy receber-tensao
 ```
 
-No Railway, configure `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`. O mesmo serviço HTTP atende o site e o endpoint WebSocket `/ws`.
+No Railway, o site e o controle USB abrem sem variáveis do Supabase. Para o ranking compartilhado, configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` antes do build. O gateway WebSocket legado em `/ws` só é ativado quando `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` também estão configuradas.
 
 Para recriar o banco de desenvolvimento local (requer Docker; apaga os dados locais):
 
