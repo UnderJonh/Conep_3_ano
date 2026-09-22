@@ -116,7 +116,7 @@ export class CrossyScene extends Scene {
 export class CrossyCamera extends OrthographicCamera {
   constructor() {
     super(-1, 1, 1, -1, -30, 30);
-    this.position.set(-1, 2.8, -2.9); // Change -1 to -.02
+    this.position.set(-0.4, 2.8, -2.4);
     this.lookAt(0, 0, 0);
   }
 
