@@ -65,18 +65,19 @@ export default function CrossyApp() {
 
   useEffect(() => {
     let sequence = '';
-    const activateGodMode = (event: KeyboardEvent) => {
+    const handleModeCommand = (event: KeyboardEvent) => {
       if (event.repeat || event.ctrlKey || event.altKey || event.metaKey || event.key.length !== 1) return;
-      sequence = `${sequence}${event.key.toLowerCase()}`.slice(-3);
-      if (sequence !== 'god') return;
+      sequence = `${sequence}${event.key.toLowerCase()}`.slice(-5);
+      const nextGodMode = sequence.endsWith('god') ? true : sequence.endsWith('human') ? false : null;
+      if (nextGodMode === null) return;
       sequence = '';
-      if (godModeRef.current) return;
-      godModeRef.current = true;
-      setGodMode(true);
-      game.current?.setGodMode(true);
+      if (godModeRef.current === nextGodMode) return;
+      godModeRef.current = nextGodMode;
+      setGodMode(nextGodMode);
+      game.current?.setGodMode(nextGodMode);
     };
-    window.addEventListener('keydown', activateGodMode, { capture: true });
-    return () => { window.removeEventListener('keydown', activateGodMode, { capture: true }); };
+    window.addEventListener('keydown', handleModeCommand, { capture: true });
+    return () => { window.removeEventListener('keydown', handleModeCommand, { capture: true }); };
   }, []);
 
   useEffect(() => {

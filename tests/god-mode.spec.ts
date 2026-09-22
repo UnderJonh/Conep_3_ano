@@ -53,5 +53,34 @@ test('digitar GOD em qualquer tela ativa invencibilidade em todos os modos', asy
   ]);
   await expect(page.getByText('Fim de jogo', { exact: true })).toHaveCount(0);
   await page.screenshot({ path: join(tmpdir(), 'conep-god-mode-local.png') });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileBadgeIsClear = await page.getByText('GOD MODE', { exact: true }).evaluate(element => {
+    const badge = element.getBoundingClientRect();
+    const playerHud = document.querySelector('.local-hud-player')?.getBoundingClientRect();
+    const insideViewport = badge.left >= 0 && badge.top >= 0 && badge.right <= innerWidth && badge.bottom <= innerHeight;
+    const overlapsHud = playerHud
+      ? badge.left < playerHud.right && badge.right > playerHud.left && badge.top < playerHud.bottom && badge.bottom > playerHud.top
+      : false;
+    return insideViewport && !overlapsHud;
+  });
+  expect(mobileBadgeIsClear).toBe(true);
+  await page.screenshot({ path: join(tmpdir(), 'conep-god-mode-local-mobile.png') });
+
+  await page.keyboard.type('HuMaN');
+  await expect(page.locator('main')).toHaveAttribute('data-god-mode', 'inactive');
+  await expect(page.getByText('GOD MODE', { exact: true })).toHaveCount(0);
+  const playersAreHuman = await page.evaluate(() => (window as any).__godModePlayers.map((player: any) => player.invincible));
+  expect(playersAreHuman).toEqual([false, false]);
+  await page.getByRole('button', { name: 'Mover jogador 1 para frente' }).click();
+  await expect(page.getByLabel('Pontuação do jogador 1')).toHaveText('1');
+  const humanPlayerSurvived = await page.evaluate(async () => {
+    const engine = (window as any).__godModeEngines.at(-1);
+    const player = (window as any).__godModePlayers[0];
+    await engine.onCollide({}, 'water', undefined, player);
+    return player.isAlive;
+  });
+  expect(humanPlayerSurvived).toBe(false);
+  await expect(page.getByLabel('Fim de jogo do jogador 1')).toBeVisible();
+  await page.screenshot({ path: join(tmpdir(), 'conep-human-mode-local-mobile.png') });
   expect(errors).toEqual([]);
 });
