@@ -1,10 +1,12 @@
 bool anterior1 = false;
 bool anterior2 = false;
+unsigned long ultimoLow1 = 0;
+unsigned long ultimoLow2 = 0;
 
 void setup() {
   Serial.begin(115200);
-  pinMode(34, INPUT);
-  pinMode(35, INPUT);
+  pinMode(25, INPUT_PULLUP);
+  pinMode(26, INPUT_PULLUP);
   pinMode(32, OUTPUT);
   pinMode(33, OUTPUT);
   digitalWrite(32, HIGH);
@@ -13,15 +15,29 @@ void setup() {
 }
 
 void loop() {
-  bool p1 = digitalRead(34) == HIGH;
-  bool p2 = digitalRead(35) == HIGH;
+  bool p1 = digitalRead(25) == LOW;
+  bool p2 = digitalRead(26) == LOW;
 
   digitalWrite(32, p1 ? LOW : HIGH);
   digitalWrite(33, p2 ? LOW : HIGH);
 
-  if (p1 && !anterior1) Serial.println("P1"); // Espaço
-  if (p2 && !anterior2) Serial.println("P2"); // Enter
+  if (p1) {
+    ultimoLow1 = millis();
+    if (!anterior1) {
+      anterior1 = true;
+      Serial.println("P1"); // Espaco
+    }
+  } else if (anterior1 && millis() - ultimoLow1 >= 50) {
+    anterior1 = false;
+  }
 
-  anterior1 = p1;
-  anterior2 = p2;
+  if (p2) {
+    ultimoLow2 = millis();
+    if (!anterior2) {
+      anterior2 = true;
+      Serial.println("P2"); // Enter
+    }
+  } else if (anterior2 && millis() - ultimoLow2 >= 50) {
+    anterior2 = false;
+  }
 }

@@ -26,10 +26,10 @@ test('multiplayer local compartilha o mundo, separa placares e usa Espaço e Ent
   const playerTwo = dialog.getByRole('region', { name: 'Jogador 2' });
   await playerOne.getByRole('button', { name: 'Rodinhas', exact: true }).click();
   await playerOne.getByRole('button', { name: 'Azul · jogador 1' }).click();
-  await playerTwo.getByRole('button', { name: 'Toucinho', exact: true }).click();
+  await playerTwo.getByRole('button', { name: 'Midas', exact: true }).click();
   await playerTwo.getByRole('button', { name: 'Lilás · jogador 2' }).click();
   await expect(playerOne.getByRole('button', { name: 'Rodinhas', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(playerTwo.getByRole('button', { name: 'Toucinho', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(playerTwo.getByRole('button', { name: 'Midas', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.screenshot({ path: join(directory, 'multiplayer-setup.png') });
 
   await dialog.getByRole('button', { name: 'Jogar', exact: true }).click();
@@ -55,15 +55,15 @@ test('multiplayer local compartilha o mundo, separa placares e usa Espaço e Ent
 
   await page.getByRole('button', { name: 'Configurar multiplayer local' }).click();
   await expect(playerOne.getByRole('button', { name: 'Rodinhas', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(playerTwo.getByRole('button', { name: 'Toucinho', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(playerTwo.getByRole('button', { name: 'Midas', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await dialog.getByRole('button', { name: '1 jogador', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Mover galinha para frente' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Configurar multiplayer local', exact: true }).click();
   await dialog.getByRole('button', { name: 'Jogar', exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(scoreOne).toBeVisible();
-  await expect(scoreTwo).toBeVisible();
+  await expect(scoreOne).toHaveText('0');
+  await expect(scoreTwo).toHaveText('0');
   const divider = await page.locator('.crossy-app').evaluate(element => getComputedStyle(element, '::after').height);
   expect(Number.parseFloat(divider)).toBeGreaterThanOrEqual(4);
   await page.screenshot({ path: join(directory, 'multiplayer-gameplay-mobile.png') });

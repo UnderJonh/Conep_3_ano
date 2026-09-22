@@ -6,22 +6,18 @@ A placa é só um controle de dois botões iluminados. Não usa Wi-Fi, nuvem, ba
 
 | Jogador | Botão | LED do botão | Tecla que o jogo simula |
 | --- | --- | --- | --- |
-| 1 | GPIO 34 | GPIO 32 | `ESPAÇO` |
-| 2 | GPIO 35 | GPIO 33 | `ENTER` |
+| 1 | GPIO 25 | GPIO 32 | `ESPAÇO` |
+| 2 | GPIO 26 | GPIO 33 | `ENTER` |
 
 ### Botão
 
-`GPIO 34` e `35` são **só de entrada e não têm resistor interno**. Cada botão precisa do seu resistor de pull-down externo:
+Os GPIOs 25 e 26 usam o **pull-up interno**. Cada botão liga o GPIO ao GND quando é apertado:
 
 ```text
-3V3 ---- botão ----+---- GPIO 34 (ou 35)
-                   |
-                  10k
-                   |
-                  GND
+GPIO 25 (ou 26) ---- botão ---- GND
 ```
 
-Sem o resistor o pino fica solto, pega ruído do ambiente e o personagem anda sozinho. Com ele, o pino fica em 0 V parado e vai a 3,3 V só enquanto o botão estiver apertado.
+Sem botão conectado, o pull-up interno mantém o GPIO em nível alto e não há comandos. Ao apertar, o pino vai a nível baixo.
 
 ### LED
 
@@ -29,8 +25,8 @@ O LED é o **contrário** do botão: fica aceso esperando o toque e apaga enquan
 
 | Botão | Pino do botão lê | LED |
 | --- | --- | --- |
-| Solto | `0` | Aceso (`1`) |
-| Apertado | `1` | Apagado (`0`) |
+| Solto | `1` | Aceso (`1`) |
+| Apertado | `0` | Apagado (`0`) |
 
 Um GPIO do ESP32 entrega no máximo ~20 mA, então o LED precisa de resistor em série — a não ser que o LED que vem dentro do botão já tenha um:
 
@@ -67,15 +63,17 @@ No boot a placa envia sua identificação e acende os dois LEDs. Apertando um bo
 
 A placa não manda tecla nenhuma: ela só avisa qual botão foi apertado. Quem transforma `P1` em `ESPAÇO` é o site, que já usa essas duas teclas no multiplayer local.
 
-O comando sai na transição de **solto para apertado**, sem debounce na placa. Enquanto o pino permanece em nível alto, não há novos comandos.
+O comando sai uma vez ao apertar. Cada botão só aceita outro toque depois de permanecer solto por 50 ms, evitando comandos repetidos pela oscilação do contato.
 
 ## Se não funcionar
 
 | Sintoma | Causa provável |
 | --- | --- |
-| O personagem anda sozinho | Falta o resistor de pull-down de 10 kΩ no botão. |
+| O personagem anda sozinho sem nada ligado aos GPIOs 25/26 | Confira se o firmware novo foi gravado e se a placa está executando esse sketch. O Monitor Serial deve mostrar `ID CROSSY-CONTROLE v1` ao iniciar. |
+| Aparecem muitos `P1`/`P2` com os botões conectados | Confira se cada botão liga o GPIO 25/26 ao GND só enquanto é apertado. |
+| Sai um comando ao soltar, em vez de apertar | Confira se o botão liga o GPIO ao GND ao apertar e se não está usando o contato normalmente fechado. |
 | Um aperto move duas vezes | O contato pode oscilar ao apertar ou soltar; confira os eventos `P1`/`P2` no Monitor Serial e o tratamento no jogo. |
-| O LED continua apagado após soltar | O GPIO continua em nível alto. Confira o resistor de pull-down de 10 kΩ e a ligação do botão. |
+| O LED continua apagado após soltar | O GPIO continua em nível baixo. Confira a ligação do botão ao GND. |
 | O LED nunca acende | Polaridade invertida, ou falta o resistor em série. |
 | O LED fica aceso mesmo apertando | O botão não está chegando no GPIO. Confira no Monitor Serial se aparece `P1`/`P2`. |
 | Nada aparece no Monitor Serial | Baud errado (tem que ser 115200) ou porta errada. |

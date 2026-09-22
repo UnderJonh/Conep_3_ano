@@ -5,6 +5,7 @@ import AudioManager from '../../../Expo-Crossy-Road-master/src/AudioManager';
 import { AmbientLight, DirectionalLight, OrthographicCamera, Scene, WebGLRenderer } from 'three';
 import { disposeAudio, pauseGameAudio } from './audio';
 import { TweenMax } from 'gsap';
+import { startingRow } from '../../../Expo-Crossy-Road-master/src/GameSettings';
 
 let models;
 
@@ -168,6 +169,8 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
   const cameras = [engine.camera, engine.camera.clone()];
   function resize() {
     if (disposed) return;
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
     const { width, height } = canvas.getBoundingClientRect();
     if (!width || !height) return;
     const scale = Math.min(window.devicePixelRatio || 1, 2);
@@ -192,9 +195,10 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
     engine.renderer.setScissorTest(true);
     players.forEach((player, index) => {
       const offset = viewOffsets[index];
-      offset.z -= (player.position.z - 8 + offset.z) * 0.1;
-      const targetX = Math.max(-3, Math.min(2, -player.position.x));
-      offset.x += (targetX - offset.x) * 0.1;
+      if (states[index] !== 'over') {
+        offset.z = startingRow - player.position.z;
+        offset.x = Math.max(-3, Math.min(2, -player.position.x));
+      }
       engine.scene.world.position.x = offset.x;
       engine.scene.world.position.z = offset.z;
       const viewport = sideBySide
@@ -205,6 +209,8 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
       engine.renderer.render(engine.scene, cameras[index]);
     });
     engine.renderer.setScissorTest(false);
+    engine.scene.world.position.x = 0;
+    engine.scene.world.position.z = 0;
   }
 
   function frame() {
@@ -243,6 +249,8 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
   }
 
   resize();
+  const resizeObserver = new ResizeObserver(resize);
+  resizeObserver.observe(canvas);
   frame();
   return {
     forward,
@@ -276,6 +284,7 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
     resize,
     dispose() {
       disposed = true;
+      resizeObserver.disconnect();
       cancelAnimationFrame(raf);
       players.forEach(player => { player.stopIdle(); player.stopAnimations(); player.disposeMaterials(); player.disposeCrown(); });
       engine.scene.traverse(node => {

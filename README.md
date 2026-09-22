@@ -19,8 +19,8 @@ O controle ESP32 por USB funciona sem Supabase. Para usar o ranking compartilhad
 
 Clique no ícone de duas pessoas no canto inferior da tela. Antes da partida, cada jogador escolhe seu personagem e sua cor. A tela é dividida em duas câmeras do mesmo mundo 3D: os veículos, rios e faixas são compartilhados, e um jogador consegue ver o outro quando estão próximos.
 
-- Jogador 1: **Espaço** ou botão no GPIO 34 da ESP32.
-- Jogador 2: **Enter** ou botão no GPIO 35 da ESP32.
+- Jogador 1: **Espaço** ou botão no GPIO 25 da ESP32.
+- Jogador 2: **Enter** ou botão no GPIO 26 da ESP32.
 
 No modo de um jogador, a música muda para uma progressão de expectativa ao alcançar 50% do recorde atual. Ao ultrapassar o recorde, entra a progressão vitoriosa e o personagem recebe uma coroa. Esses efeitos não são usados no multiplayer local.
 - Cada metade tem placar e estado de partida independentes.
@@ -70,17 +70,17 @@ Para **refazer do zero o projeto existente**, abra `supabase/rebuild.sql`, copie
 
 A placa é só um controle de dois botões ligado por cabo USB. Não usa Wi-Fi, nuvem nem certificado.
 
-1. Ligue cada botão assim: um lado no **3V3**, o outro no **GPIO 34** (jogador 1) ou **GPIO 35** (jogador 2), e um resistor de **10 kΩ** desse mesmo lado até o **GND**.
+1. Ligue cada botão assim: um lado no **GND**, o outro no **GPIO 25** (jogador 1) ou **GPIO 26** (jogador 2). O sketch usa o pull-up interno desses pinos, sem resistor externo.
 2. Ligue o LED de cada botão no **GPIO 32** (jogador 1) ou **GPIO 33** (jogador 2), com um resistor de **220 Ω** em série até o **GND**. O LED fica aceso esperando e apaga enquanto o botão está apertado.
 3. Abra `esp32/sketch/sketch.ino` na Arduino IDE, selecione a placa e a porta USB e grave o firmware. Nenhuma biblioteca externa é necessária.
 4. Abra o Monitor Serial em **115200 baud**. A placa se apresenta com `ID CROSSY-CONTROLE v1` e mostra `P1` ou `P2` a cada toque.
 5. Feche o Monitor Serial, abra o jogo, clique em **O controle ESP32** e depois em **Conectar controle**. Escolha a porta da placa.
 
-Os pinos 34 e 35 são só de entrada e não têm resistor interno: sem o pull-down de 10 kΩ o pino flutua e o personagem anda sozinho. No jogo, o botão do jogador 1 tem o mesmo efeito de **ESPAÇO** e o do jogador 2 tem o mesmo efeito de **ENTER**. Detalhes de ligação, protocolo e diagnóstico ficam em [`esp32/README.md`](esp32/README.md).
+Os GPIOs 25 e 26 ficam em nível alto mesmo sem botões conectados, por causa do pull-up interno. Ao apertar, o botão liga o pino ao GND. No jogo, o botão do jogador 1 tem o mesmo efeito de **ESPAÇO** e o do jogador 2 tem o mesmo efeito de **ENTER**. Detalhes de ligação, protocolo e diagnóstico ficam em [`esp32/README.md`](esp32/README.md).
 
 ## Conexão USB e arquivos
 
-O navegador lê as linhas `P1` e `P2` enviadas pela placa a 115200 baud e move o jogador correspondente. O filtro de 80 ms por jogador evita passos extras causados pela oscilação do contato. A conexão serial exige Chrome ou Edge em HTTPS ou localhost; o teclado continua disponível nos demais navegadores.
+O navegador lê as linhas `P1` e `P2` enviadas pela placa a 115200 baud e move o jogador correspondente. A placa só aceita outro toque do mesmo botão após 50 ms solto; o navegador não aplica filtro de tempo. A conexão serial exige Chrome ou Edge em HTTPS ou localhost; o teclado continua disponível nos demais navegadores.
 
 | Arquivo | Responsabilidade |
 | --- | --- |

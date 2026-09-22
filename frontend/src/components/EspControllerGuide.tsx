@@ -43,13 +43,13 @@ export function EspControllerGuide({ multiplayer, available, status, error, conn
       </p>
       <dl className="guide-pins">
         <div>
-          <dt>GPIO 34</dt>
+          <dt>GPIO 25</dt>
           <dd>Botão do jogador 1</dd>
           <dd className="small">Simula a tecla ESPAÇO</dd>
           <dd className="small">LED no GPIO 32</dd>
         </div>
         <div>
-          <dt>GPIO 35</dt>
+          <dt>GPIO 26</dt>
           <dd>Botão do jogador 2</dd>
           <dd className="small">Simula a tecla ENTER</dd>
           <dd className="small">LED no GPIO 33</dd>
@@ -62,7 +62,7 @@ export function EspControllerGuide({ multiplayer, available, status, error, conn
       <p>
         {multiplayer
           ? 'Os dois botões estão ativos nesta partida: cada um move o seu personagem.'
-          : 'No modo de 1 jogador só o botão do GPIO 34 move o personagem. Abra o multiplayer local para usar os dois.'}
+          : 'No modo de 1 jogador só o botão do GPIO 25 move o personagem. Abra o multiplayer local para usar os dois.'}
       </p>
     </section>
 
@@ -95,17 +95,16 @@ export function EspControllerGuide({ multiplayer, available, status, error, conn
     <details>
       <summary>Como montar os botões</summary>
       <p>
-        Os pinos <strong>GPIO 34 e 35 são só de entrada</strong> e, diferente dos outros, não têm
-        resistor interno. Cada botão precisa do seu resistor de <strong>pull-down externo</strong>:
+        Os pinos <strong>GPIO 25 e 26</strong> usam o <strong>pull-up interno</strong> da ESP32.
+        Cada botão liga o pino ao GND quando é apertado:
       </p>
       <ol>
-        <li>Um lado do botão no <code>3V3</code>.</li>
-        <li>O outro lado no <code>GPIO 34</code> (ou <code>35</code>).</li>
-        <li>Um resistor de <code>10 kΩ</code> desse mesmo lado até o <code>GND</code>.</li>
+        <li>Um lado do botão no <code>GND</code>.</li>
+        <li>O outro lado no <code>GPIO 25</code> (ou <code>26</code>).</li>
       </ol>
       <p className="small">
-        Sem o resistor o pino fica solto, pega ruído do ambiente e o personagem anda sozinho. Com
-        ele, o pino fica em 0 V parado e vai a 3,3 V só enquanto o botão estiver apertado.
+        Mesmo sem botão conectado, o pino fica em nível alto e não gera comandos.
+        Ao apertar, ele vai a nível baixo.
       </p>
       <p>
         O LED de cada botão vai no <code>GPIO 32</code> (ou <code>33</code>), com um resistor de
