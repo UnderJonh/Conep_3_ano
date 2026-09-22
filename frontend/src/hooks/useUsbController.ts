@@ -25,6 +25,7 @@ export function useUsbController(onPress: (player: Player) => void) {
   const port = useRef<UsbPort | null>(null);
   const readTask = useRef<Promise<void> | null>(null);
   const connecting = useRef(false);
+  const lastPressAt = useRef<[number, number]>([-Infinity, -Infinity]);
   const mounted = useRef(true);
   const [status, setStatus] = useState<Status>('disconnected');
   const [error, setError] = useState('');
@@ -54,6 +55,7 @@ export function useUsbController(onPress: (player: Player) => void) {
       await selected.open({ baudRate: 115200 });
       if (generation.current !== current) { await selected.close(); return; }
       port.current = selected;
+      lastPressAt.current = [-Infinity, -Infinity];
       setStatus('connected');
 
       const activePort = selected;
@@ -76,8 +78,12 @@ export function useUsbController(onPress: (player: Player) => void) {
               for (const line of lines) {
                 if (generation.current !== current) break;
                 const command = line.trim();
-                if (command === 'P1') onPressRef.current(1);
-                else if (command === 'P2') onPressRef.current(2);
+                const player = command === 'P1' ? 1 : command === 'P2' ? 2 : null;
+                if (!player) continue;
+                const now = performance.now();
+                if (now - lastPressAt.current[player - 1] < 80) continue;
+                lastPressAt.current[player - 1] = now;
+                onPressRef.current(player);
               }
             }
           } finally {

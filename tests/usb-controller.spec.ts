@@ -1,8 +1,11 @@
 import { expect, test } from '@playwright/test';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 test('P1 e P2 do controle USB movem os jogadores correspondentes', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', entry => { if (entry.type() === 'error') errors.push(entry.text()); });
   await page.route('**/rest/v1/crossy_ranking*', route => route.fulfill({ json: [] }));
   await page.addInitScript(() => {
     let input: ReadableStreamDefaultController<Uint8Array>;
@@ -21,6 +24,7 @@ test('P1 e P2 do controle USB movem os jogadores correspondentes', async ({ page
   });
 
   await page.goto('/');
+  await expect(page).toHaveTitle('Crossy Road · CONEP');
   await expect(page.getByAltText('Crossy Road')).toBeVisible();
   await page.getByRole('button', { name: 'Configurar multiplayer local' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Jogar', exact: true }).click();
@@ -36,11 +40,14 @@ test('P1 e P2 do controle USB movem os jogadores correspondentes', async ({ page
 
   await page.evaluate(() => (window as Window & { emitSerial: (text: string) => void }).emitSerial('ID CROSSY-CONTROLE v1\nP'));
   await expect(one).toHaveText('0');
-  await page.evaluate(() => (window as Window & { emitSerial: (text: string) => void }).emitSerial('1\nP2\n'));
+  await page.evaluate(() => (window as Window & { emitSerial: (text: string) => void }).emitSerial('1\nP1\nP2\n'));
   await expect(one).toHaveText('1');
   await expect(two).toHaveText('1');
+  await page.waitForTimeout(120);
+  await expect(one).toHaveText('1');
   await page.evaluate(() => (window as Window & { emitSerial: (text: string) => void }).emitSerial('P2\n'));
   await expect(two).toHaveText('2');
+  await page.screenshot({ path: join(tmpdir(), 'conep-usb-controller.png') });
 
   await page.getByRole('button', { name: 'O controle ESP32' }).click();
   await page.getByRole('button', { name: 'Desconectar controle' }).click();
