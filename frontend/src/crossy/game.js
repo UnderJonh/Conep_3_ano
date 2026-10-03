@@ -98,7 +98,6 @@ export async function createGame(canvas, callbacks, appearance = { character: 'c
     setGodMode(value) {
       if (disposed) return;
       engine._hero.invincible = value;
-      canvas.dataset.godMode = String(value);
     },
     resize: engine.updateScale,
     dispose() {

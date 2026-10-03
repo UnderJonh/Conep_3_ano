@@ -253,10 +253,10 @@ export default function CrossyApp() {
       <button className="settings-icon mode-icon" aria-label="Configurar multiplayer local" title="Configurar multiplayer local" disabled={!ready} onClick={() => setModal('local')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 19c.5-3.8 2.3-5.7 5.5-5.7s5 1.9 5.5 5.7M13.5 14.5c1-.8 2.1-1.2 3.5-1.2 2.7 0 4.2 1.7 4.5 5.2"/></svg>
       </button>
-      <button className="settings-icon" aria-label="O controle ESP32" title="O controle ESP32" onClick={() => setModal('esp')}>
+      {/* <button className="settings-icon" aria-label="O controle ESP32" title="O controle ESP32" onClick={() => setModal('esp')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m9 3-.6 2.1-1.8 1L4.5 5.6l-3 5.2 1.5 1.5v2L1.5 16l3 5.2 2.1-.5 1.8 1L9 24h6l.6-2.3 1.8-1 2.1.5 3-5.2-1.5-1.7v-2l1.5-1.5-3-5.2-2.1.5-1.8-1L15 3Z" transform="translate(0 -1.5) scale(1 .9)"/><circle cx="12" cy="11" r="3"/></svg>
-      </button>
-      <button className="credits-button" onClick={() => setModal('credits')}>Créditos</button>
+      </button> */}
+      {/* <button className="credits-button" onClick={() => setModal('credits')}>Créditos</button> */}
     </div>
     <dialog className="crossy-dialog" data-modal={modal} aria-labelledby="dialog-title" onCancel={event => { event.preventDefault(); closeModal(); }} onClick={event => { if (event.target === event.currentTarget) { const bounds = event.currentTarget.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeModal(); } }}>
       <div className="dialog-heading"><h1 id="dialog-title">{modal === 'esp' ? 'O controle ESP32' : modal === 'customization' ? 'Personalizar personagem' : modal === 'local' ? 'Escolha o modo' : modal === 'ranking' ? 'Ranking de jogadores' : modal === 'record' ? 'Novo recorde!' : credits.title}</h1><button className="close-dialog" aria-label="Fechar" disabled={saving} onClick={closeModal}>×</button></div>
