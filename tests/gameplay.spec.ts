@@ -87,34 +87,67 @@ test('câmera mantém o personagem inteiro em desktops com pouca altura', async 
   expect(errors).toEqual([]);
 });
 
-test('câmera no celular deixa o personagem abaixo do centro e abre o caminho à frente', async ({ page }) => {
+test('câmera no celular estreito centraliza e exibe o personagem inteiro', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   await exposeEngine(page);
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 225, height: 478 });
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Mover galinha para frente' })).toBeVisible();
 
-  await page.keyboard.press('Space');
-  await expect(page.getByLabel('Pontuação', { exact: true })).toHaveText('1');
-  const framing = await page.evaluate(() => {
+  const measureHero = () => page.evaluate(() => {
     const engine = (window as any).__crossyQA;
+    const points: Array<{ x: number; y: number }> = [];
     engine.scene.updateMatrixWorld(true);
     engine.camera.updateMatrixWorld(true);
-    const position = engine._hero.position.clone();
-    engine._hero.getWorldPosition(position);
-    position.project(engine.camera);
-    return {
-      screenY: (1 - position.y) / 2,
-      zoom: engine.camera.zoom,
-    };
+    engine._hero.traverse((object: any) => {
+      if (!object.geometry) return;
+      object.geometry.computeBoundingBox();
+      const bounds = object.geometry.boundingBox;
+      if (!bounds) return;
+      for (const x of [bounds.min.x, bounds.max.x]) {
+        for (const y of [bounds.min.y, bounds.max.y]) {
+          for (const z of [bounds.min.z, bounds.max.z]) {
+            const position = bounds.min.clone().set(x, y, z);
+            object.localToWorld(position);
+            position.project(engine.camera);
+            points.push({ x: (position.x + 1) * innerWidth / 2, y: (1 - position.y) * innerHeight / 2 });
+          }
+        }
+      }
+    });
+    const left = Math.min(...points.map(point => point.x));
+    const right = Math.max(...points.map(point => point.x));
+    const top = Math.min(...points.map(point => point.y));
+    const bottom = Math.max(...points.map(point => point.y));
+    return { left, right, top, bottom, centerX: (left + right) / 2, viewportWidth: innerWidth, viewportHeight: innerHeight, zoom: engine.camera.zoom };
   });
 
-  expect(framing.zoom).toBe(97.5);
-  expect(framing.screenY).toBeGreaterThan(0.66);
-  expect(framing.screenY).toBeLessThan(0.73);
-  await page.screenshot({ path: join(directory, 'camera-mobile.png') });
+  const homeFraming = await measureHero();
+  const promptBounds = await page.locator('.home-overlay p').boundingBox();
+  const toolbarBounds = await page.locator('.game-toolbar').boundingBox();
+  expect(promptBounds).not.toBeNull();
+  expect(toolbarBounds).not.toBeNull();
+  expect(homeFraming.left).toBeGreaterThanOrEqual(0);
+  expect(homeFraming.right).toBeLessThanOrEqual(homeFraming.viewportWidth);
+  expect(homeFraming.top).toBeGreaterThan(promptBounds!.y + promptBounds!.height + 8);
+  expect(homeFraming.bottom).toBeLessThan(toolbarBounds!.y - 8);
+  expect(homeFraming.centerX / homeFraming.viewportWidth).toBeGreaterThan(0.45);
+  expect(homeFraming.centerX / homeFraming.viewportWidth).toBeLessThan(0.55);
+  await page.screenshot({ path: join(directory, 'camera-mobile-home.png') });
+
+  await page.keyboard.press('Space');
+  await expect(page.getByLabel('Pontuação', { exact: true })).toHaveText('1');
+  const playingFraming = await measureHero();
+  expect(playingFraming.zoom).toBe(56.25);
+  expect(playingFraming.left).toBeGreaterThanOrEqual(0);
+  expect(playingFraming.right).toBeLessThanOrEqual(playingFraming.viewportWidth);
+  expect(playingFraming.top).toBeGreaterThanOrEqual(0);
+  expect(playingFraming.bottom).toBeLessThanOrEqual(playingFraming.viewportHeight);
+  expect(playingFraming.centerX / playingFraming.viewportWidth).toBeGreaterThan(0.45);
+  expect(playingFraming.centerX / playingFraming.viewportWidth).toBeLessThan(0.55);
+  await page.screenshot({ path: join(directory, 'camera-mobile-playing.png') });
   expect(errors).toEqual([]);
 });
 
@@ -139,7 +172,7 @@ test('sons próprios acompanham personagem e música tem loop e controle indepen
   await page.getByRole('button', { name: 'Personalizar personagem' }).click();
   await page.getByLabel('Música de fundo').fill('0');
   const durations: number[] = [];
-  for (const name of ['Galinha', 'Toucinho', 'Abacodificador', 'Rodinhas', 'Palmeiro']) {
+  for (const name of ['Galinha', 'Midas', 'Abacodificador', 'Rodinhas', 'Palmeiro']) {
     await page.getByRole('button', { name, exact: true }).click();
     const before = (await effects()).length;
     await page.getByRole('button', { name: 'Testar som', exact: true }).click();
@@ -148,7 +181,7 @@ test('sons próprios acompanham personagem e música tem loop e controle indepen
   }
   expect(new Set(durations).size).toBe(5);
   // Actual game movement uses the selected profile, not only the preview button.
-  await page.getByRole('button', { name: 'Toucinho', exact: true }).click();
+  await page.getByRole('button', { name: 'Midas', exact: true }).click();
   await page.getByRole('button', { name: 'Fechar', exact: true }).click();
   const beforeMove = (await effects()).length;
   await page.getByRole('button', { name: 'Mover galinha para frente' }).click();

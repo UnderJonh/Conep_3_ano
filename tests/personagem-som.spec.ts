@@ -34,8 +34,8 @@ test('personalização altera a prévia, preserva a partida e mantém preferênc
   // Allow the asynchronous preview renderer to produce its first frame.
   await expect.poll(() => preview.evaluate(canvas => (canvas as HTMLCanvasElement).width)).toBeGreaterThan(150);
   const originalPreview = await preview.screenshot();
-  await page.getByRole('button', { name: 'Toucinho', exact: true }).click();
-  await expect(page.locator('.character-preview figcaption')).toHaveText('Toucinho');
+  await page.getByRole('button', { name: 'Midas', exact: true }).click();
+  await expect(page.locator('.character-preview figcaption')).toHaveText('Midas');
   expect((await preview.screenshot()).equals(originalPreview)).toBe(false);
   await page.getByRole('button', { name: 'Azul', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Azul', exact: true })).toHaveAttribute('aria-pressed', 'true');
@@ -55,7 +55,7 @@ test('personalização altera a prévia, preserva a partida e mantém preferênc
   await page.reload();
   await expect(page.getByRole('button', { name: 'Mover galinha para frente' })).toBeVisible();
   await page.getByRole('button', { name: 'Personalizar personagem' }).click();
-  await expect(page.getByRole('button', { name: 'Toucinho', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Midas', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Azul', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByLabel('Sons do jogo')).toHaveValue('0');
   await page.setViewportSize({ width: 390, height: 844 });

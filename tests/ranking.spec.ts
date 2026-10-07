@@ -21,7 +21,7 @@ async function setup(page: Page, scores: number[], shared = false) {
           if (started) callbacks.onState('over'); else started = true;
         },
         restart() { run++; started = false; callbacks.onScore(0); callbacks.onState('home'); },
-        pause(value) { paused = value; }, setAppearance() {}, resize() {}, dispose() {}
+        pause(value) { paused = value; }, setAppearance() {}, setGodMode() {}, resize() {}, dispose() {}
       };
     }
   ` }));

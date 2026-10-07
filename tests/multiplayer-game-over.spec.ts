@@ -13,29 +13,11 @@ test('lado de quem morreu fica opaco e apenas P1 reinicia o multiplayer', async 
     expect(source).toContain(marker);
     await route.fulfill({ response, body: source.replace(marker, `${marker} window.__localQA = { engine, players, states };`) });
   });
-  await page.addInitScript(() => {
-    let input: ReadableStreamDefaultController<Uint8Array>;
-    const port = {
-      readable: new ReadableStream<Uint8Array>({ start(controller) { input = controller; } }),
-      async open() {},
-      async close() { try { input.close(); } catch { /* Already closed. */ } },
-    };
-    Object.defineProperty(navigator, 'serial', {
-      configurable: true,
-      value: { async requestPort() { return port; } },
-    });
-    (window as any).emitSerial = (command: string) => input.enqueue(new TextEncoder().encode(`${command}\n`));
-  });
-
   await page.setViewportSize({ width: 1536, height: 696 });
   await page.goto('/');
   await expect(page).toHaveTitle('Crossy Road · CONEP');
   await page.getByRole('button', { name: 'Configurar multiplayer local' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Jogar', exact: true }).click();
-  await page.getByRole('button', { name: 'O controle ESP32' }).click();
-  await page.getByRole('button', { name: 'Conectar controle' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Controle USB conectado.' })).toBeVisible();
-  await page.getByRole('button', { name: 'Fechar' }).click();
   await page.evaluate(() => {
     const map = (window as any).__localQA.engine.gameMap;
     const generate = map.newRow;
@@ -44,8 +26,8 @@ test('lado de quem morreu fica opaco e apenas P1 reinicia o multiplayer', async 
     map.reset(); map.init();
   });
 
-  await page.evaluate(() => (window as any).emitSerial('P1'));
-  await page.evaluate(() => (window as any).emitSerial('P2'));
+  await page.keyboard.press('Space');
+  await page.keyboard.press('Enter');
   await expect(page.getByLabel('Pontuação do jogador 1')).toHaveText('1');
   await expect(page.getByLabel('Pontuação do jogador 2')).toHaveText('1');
   await page.evaluate(() => {
@@ -57,10 +39,10 @@ test('lado de quem morreu fica opaco e apenas P1 reinicia o multiplayer', async 
   await expect(overOne).toBeVisible();
   await expect(overOne).toHaveCSS('background-color', 'rgb(32, 53, 39)');
   await expect(page.getByLabel('Fim de jogo do jogador 2')).toHaveCount(0);
-  await page.evaluate(() => (window as any).emitSerial('P1'));
+  await page.keyboard.press('Space');
   await expect(overOne).toBeVisible();
   for (let step = 2; step <= 14; step++) {
-    await page.evaluate(() => (window as any).emitSerial('P2'));
+    await page.keyboard.press('Enter');
     await expect(page.getByLabel('Pontuação do jogador 2')).toHaveText(String(step));
   }
   await page.screenshot({ path: join(tmpdir(), 'conep-multiplayer-one-player-over.png') });
@@ -78,11 +60,11 @@ test('lado de quem morreu fica opaco e apenas P1 reinicia o multiplayer', async 
   const bounds = await Promise.all([overOne.boundingBox(), overTwo.boundingBox()]);
   expect(bounds[0]).toMatchObject({ x: 0, y: 0, width: 390, height: 422 });
   expect(bounds[1]).toMatchObject({ x: 0, y: 422, width: 390, height: 422 });
-  await page.evaluate(() => (window as any).emitSerial('P2'));
+  await page.keyboard.press('Enter');
   await expect(overOne).toBeVisible();
   await expect(overTwo).toBeVisible();
   await page.screenshot({ path: join(tmpdir(), 'conep-multiplayer-both-over-mobile.png') });
-  await page.evaluate(() => (window as any).emitSerial('P1'));
+  await page.keyboard.press('Space');
   await expect(overOne).toHaveCount(0);
   await expect(overTwo).toHaveCount(0);
   await expect(page.getByLabel('Pontuação do jogador 1')).toHaveText('0');

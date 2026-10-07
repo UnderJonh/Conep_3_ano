@@ -13,6 +13,7 @@ const COMPACT_DESKTOP_MIN_WIDTH = 768;
 const COMPACT_DESKTOP_REFERENCE_HEIGHT = 850;
 const COMPACT_DESKTOP_MIN_CAMERA_SCALE = 0.8;
 const MOBILE_CAMERA_MAX_WIDTH = 700;
+const MOBILE_CAMERA_HORIZONTAL_OFFSET_RATIO = 0.16;
 const MOBILE_CAMERA_VERTICAL_OFFSET_RATIO = 0.065;
 const MOBILE_CAMERA_MAX_VERTICAL_OFFSET = 56;
 // Max visible half-width in world units. The terrain strips are 25 units wide
@@ -30,24 +31,28 @@ function cameraZoom(width, height, scale, viewportWidth = width) {
   return Math.max(baseZoom, minZoomForWidth);
 }
 
-function mobileCameraVerticalOffset(width, height, scale, zoom, viewportWidth = width) {
+function mobileCameraOffsets(width, height, scale, zoom, viewportWidth = width) {
   // Split-screen multiplayer uses two almost-square views on a portrait phone;
   // those already have the same framing as desktop and should stay unchanged.
-  if (viewportWidth >= MOBILE_CAMERA_MAX_WIDTH || height < width * 1.35) return 0;
-  const screenOffset = Math.min(height * MOBILE_CAMERA_VERTICAL_OFFSET_RATIO, MOBILE_CAMERA_MAX_VERTICAL_OFFSET);
+  if (viewportWidth >= MOBILE_CAMERA_MAX_WIDTH || height < width * 1.35) return { horizontal: 0, vertical: 0 };
+  const horizontalScreenOffset = width * MOBILE_CAMERA_HORIZONTAL_OFFSET_RATIO;
+  const verticalScreenOffset = Math.min(height * MOBILE_CAMERA_VERTICAL_OFFSET_RATIO, MOBILE_CAMERA_MAX_VERTICAL_OFFSET);
   // Orthographic bounds are applied before zoom, so convert the desired CSS
-  // pixel shift into camera-space units. Moving the frustum up places the
-  // player lower on screen and leaves more of the upcoming road visible.
-  return (2 * screenOffset * scale) / zoom;
+  // pixel shifts into camera-space units. Moving the frustum left centers the
+  // isometric player; moving it up leaves more of the upcoming road visible.
+  return {
+    horizontal: (2 * horizontalScreenOffset * scale) / zoom,
+    vertical: (2 * verticalScreenOffset * scale) / zoom,
+  };
 }
 
 function configureCamera(camera, width, height, scale, viewportWidth = width) {
   const zoom = cameraZoom(width, height, scale, viewportWidth);
-  const verticalOffset = mobileCameraVerticalOffset(width, height, scale, zoom, viewportWidth);
-  camera.left = -(width * scale);
-  camera.right = width * scale;
-  camera.top = (height * scale) + verticalOffset;
-  camera.bottom = -(height * scale) + verticalOffset;
+  const offset = mobileCameraOffsets(width, height, scale, zoom, viewportWidth);
+  camera.left = -(width * scale) - offset.horizontal;
+  camera.right = (width * scale) - offset.horizontal;
+  camera.top = (height * scale) + offset.vertical;
+  camera.bottom = -(height * scale) + offset.vertical;
   camera.zoom = zoom;
   camera.updateProjectionMatrix();
 }

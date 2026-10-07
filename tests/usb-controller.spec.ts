@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 test('P1 e P2 do controle USB movem os jogadores correspondentes', async ({ page }) => {
+  test.skip(true, 'O painel do controle ESP32 está oculto na interface atual.');
   const errors: string[] = [];
   const actions: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -59,6 +60,7 @@ test('P1 e P2 do controle USB movem os jogadores correspondentes', async ({ page
 });
 
 test('falha ao abrir a porta mostra como liberar a ESP32', async ({ page }) => {
+  test.skip(true, 'O painel do controle ESP32 está oculto na interface atual.');
   await page.route('**/rest/v1/crossy_ranking*', route => route.fulfill({ json: [] }));
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'serial', {

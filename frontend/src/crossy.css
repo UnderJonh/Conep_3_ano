@@ -892,3 +892,9 @@ label input,label select {
 .local-character-preview canvas { height:150px }
 
 }
+
+@media(max-width:600px) and (max-height:600px) {
+  .home-overlay {
+    transform:translateY(clamp(-60px,-12dvh,-50px))
+  }
+}
