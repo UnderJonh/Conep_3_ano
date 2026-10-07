@@ -87,6 +87,37 @@ test('câmera mantém o personagem inteiro em desktops com pouca altura', async 
   expect(errors).toEqual([]);
 });
 
+test('câmera no celular deixa o personagem abaixo do centro e abre o caminho à frente', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  await exposeEngine(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Mover galinha para frente' })).toBeVisible();
+
+  await page.keyboard.press('Space');
+  await expect(page.getByLabel('Pontuação', { exact: true })).toHaveText('1');
+  const framing = await page.evaluate(() => {
+    const engine = (window as any).__crossyQA;
+    engine.scene.updateMatrixWorld(true);
+    engine.camera.updateMatrixWorld(true);
+    const position = engine._hero.position.clone();
+    engine._hero.getWorldPosition(position);
+    position.project(engine.camera);
+    return {
+      screenY: (1 - position.y) / 2,
+      zoom: engine.camera.zoom,
+    };
+  });
+
+  expect(framing.zoom).toBe(97.5);
+  expect(framing.screenY).toBeGreaterThan(0.66);
+  expect(framing.screenY).toBeLessThan(0.73);
+  await page.screenshot({ path: join(directory, 'camera-mobile.png') });
+  expect(errors).toEqual([]);
+});
+
 test('sons próprios acompanham personagem e música tem loop e controle independente', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));

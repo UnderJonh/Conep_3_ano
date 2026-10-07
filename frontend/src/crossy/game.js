@@ -12,9 +12,12 @@ let models;
 const COMPACT_DESKTOP_MIN_WIDTH = 768;
 const COMPACT_DESKTOP_REFERENCE_HEIGHT = 850;
 const COMPACT_DESKTOP_MIN_CAMERA_SCALE = 0.8;
+const MOBILE_CAMERA_MAX_WIDTH = 700;
+const MOBILE_CAMERA_VERTICAL_OFFSET_RATIO = 0.065;
+const MOBILE_CAMERA_MAX_VERTICAL_OFFSET = 56;
 // Max visible half-width in world units. The terrain strips are 25 units wide
 // (-12.5 to 12.5) and the camera + world offset can shift up to ~4 units, so
-// 7.5 keeps a safe margin on every aspect ratio.
+// 9.5 keeps a safe margin on every aspect ratio.
 const MAX_VISIBLE_HALF_WIDTH = 9.5;
 
 function cameraZoom(width, height, scale, viewportWidth = width) {
@@ -26,6 +29,29 @@ function cameraZoom(width, height, scale, viewportWidth = width) {
   const minZoomForWidth = (width * scale) / MAX_VISIBLE_HALF_WIDTH;
   return Math.max(baseZoom, minZoomForWidth);
 }
+
+function mobileCameraVerticalOffset(width, height, scale, zoom, viewportWidth = width) {
+  // Split-screen multiplayer uses two almost-square views on a portrait phone;
+  // those already have the same framing as desktop and should stay unchanged.
+  if (viewportWidth >= MOBILE_CAMERA_MAX_WIDTH || height < width * 1.35) return 0;
+  const screenOffset = Math.min(height * MOBILE_CAMERA_VERTICAL_OFFSET_RATIO, MOBILE_CAMERA_MAX_VERTICAL_OFFSET);
+  // Orthographic bounds are applied before zoom, so convert the desired CSS
+  // pixel shift into camera-space units. Moving the frustum up places the
+  // player lower on screen and leaves more of the upcoming road visible.
+  return (2 * screenOffset * scale) / zoom;
+}
+
+function configureCamera(camera, width, height, scale, viewportWidth = width) {
+  const zoom = cameraZoom(width, height, scale, viewportWidth);
+  const verticalOffset = mobileCameraVerticalOffset(width, height, scale, zoom, viewportWidth);
+  camera.left = -(width * scale);
+  camera.right = width * scale;
+  camera.top = (height * scale) + verticalOffset;
+  camera.bottom = -(height * scale) + verticalOffset;
+  camera.zoom = zoom;
+  camera.updateProjectionMatrix();
+}
+
 export async function createGame(canvas, callbacks, appearance = { character: 'chicken', color: '#ffffff' }) {
   models ??= ModelLoader.loadModels();
   await models;
@@ -44,11 +70,8 @@ export async function createGame(canvas, callbacks, appearance = { character: 'c
   engine.onGameEnded = () => { state = 'over'; pending = 0; callbacks.onState(state); };
   engine.setupGame(appearance.character);
   engine._hero.setColor(appearance.color);
-  const updateScale = engine.camera.updateScale;
   engine.camera.updateScale = dimensions => {
-    updateScale(dimensions);
-    engine.camera.zoom = cameraZoom(dimensions.width, dimensions.height, dimensions.scale);
-    engine.camera.updateProjectionMatrix();
+    configureCamera(engine.camera, dimensions.width, dimensions.height, dimensions.scale);
   };
   engine.init();
   await engine._onGLContextCreate(gl);
@@ -191,12 +214,7 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
     const viewWidth = sideBySide ? width / 2 : width;
     const viewHeight = sideBySide ? height : height / 2;
     for (const camera of cameras) {
-      camera.left = -(viewWidth * scale);
-      camera.right = viewWidth * scale;
-      camera.top = viewHeight * scale;
-      camera.bottom = -(viewHeight * scale);
-      camera.zoom = cameraZoom(viewWidth, viewHeight, scale, width);
-      camera.updateProjectionMatrix();
+      configureCamera(camera, viewWidth, viewHeight, scale, width);
     }
   }
 
