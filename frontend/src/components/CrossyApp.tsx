@@ -8,6 +8,8 @@ import { EspControllerGuide } from './EspControllerGuide';
 import { CharacterCustomization } from './CharacterCustomization';
 import { LocalMultiplayerSetup } from './LocalMultiplayerSetup';
 import { PlayerRanking } from './PlayerRanking';
+import { CameraControlPanel } from './CameraControlPanel';
+import { useCameraSettings } from '../hooks/useCameraSettings';
 import { useCrossyRanking } from '../hooks/useCrossyRanking';
 import { useUsbController } from '../hooks/useUsbController';
 import { playerNameLimit } from '../lib/ranking';
@@ -36,6 +38,10 @@ export default function CrossyApp() {
   const [localScores, setLocalScores] = useState<[number, number]>([0, 0]);
   const [localStates, setLocalStates] = useState<[PlayState, PlayState]>(['home', 'home']);
   const [modal, setModal] = useState<Modal>(null);
+  const [cameraPanelOpen, setCameraPanelOpen] = useState(false);
+  const camera = useCameraSettings();
+  const cameraSettingsRef = useRef(camera.settings);
+  cameraSettingsRef.current = camera.settings;
   const ranking = useCrossyRanking();
   const highScoreRef = useRef(ranking.highScore);
   highScoreRef.current = ranking.highScore;
@@ -66,8 +72,15 @@ export default function CrossyApp() {
   useEffect(() => {
     let sequence = '';
     const handleModeCommand = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setCameraPanelOpen(false); return; }
       if (event.repeat || event.ctrlKey || event.altKey || event.metaKey || event.key.length !== 1) return;
-      sequence = `${sequence}${event.key.toLowerCase()}`.slice(-5);
+      if (event.target instanceof HTMLElement && event.target.closest('input:not([type="range"]),textarea,select,[contenteditable="true"]')) return;
+      sequence = `${sequence}${event.key.toLowerCase()}`.slice(-11);
+      if (sequence.endsWith('controlecam')) {
+        sequence = '';
+        setCameraPanelOpen(open => !open);
+        return;
+      }
       const nextGodMode = sequence.endsWith('god') ? true : sequence.endsWith('human') ? false : null;
       if (nextGodMode === null) return;
       sequence = '';
@@ -138,6 +151,7 @@ export default function CrossyApp() {
       controller = next;
       if (!alive) { next.dispose(); return; }
       game.current = next;
+      next.setCameraSettings?.(cameraSettingsRef.current);
       next.setGodMode(godModeRef.current);
       next.pause(!!modalRef.current || document.hidden);
       setReady(true);
@@ -186,6 +200,7 @@ export default function CrossyApp() {
   useEffect(() => {
     if (mode === 'local') (game.current as LocalMultiplayerController | null)?.setAppearance(playerTwoAppearanceRef.current, 2);
   }, [mode, playerTwoAppearance.character, playerTwoAppearance.color]);
+  useEffect(() => { game.current?.setCameraSettings?.(camera.settings); }, [camera.settings]);
   useEffect(() => { game.current?.pause(!!modal || document.hidden); }, [modal]);
   useEffect(() => {
     if (!modal) return;
@@ -258,6 +273,15 @@ export default function CrossyApp() {
       </button> */}
       {/* <button className="credits-button" onClick={() => setModal('credits')}>Créditos</button> */}
     </div>
+    <CameraControlPanel
+      open={cameraPanelOpen}
+      settings={camera.settings}
+      status={camera.status}
+      syncError={camera.syncError}
+      onChange={camera.updateProfile}
+      onReset={camera.resetProfile}
+      onClose={() => setCameraPanelOpen(false)}
+    />
     <dialog className="crossy-dialog" data-modal={modal} aria-labelledby="dialog-title" onCancel={event => { event.preventDefault(); closeModal(); }} onClick={event => { if (event.target === event.currentTarget) { const bounds = event.currentTarget.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeModal(); } }}>
       <div className="dialog-heading"><h1 id="dialog-title">{modal === 'esp' ? 'O controle ESP32' : modal === 'customization' ? 'Personalizar personagem' : modal === 'local' ? 'Escolha o modo' : modal === 'ranking' ? 'Ranking de jogadores' : modal === 'record' ? 'Novo recorde!' : credits.title}</h1><button className="close-dialog" aria-label="Fechar" disabled={saving} onClick={closeModal}>×</button></div>
       <div className="dialog-content">

@@ -9,6 +9,10 @@ mkdirSync(directory, { recursive: true });
 
 async function exposeEngine(page: Page) {
   await page.route('**/rest/v1/crossy_ranking*', route => route.fulfill({ json: [] }));
+  await page.route('**/rest/v1/crossy_camera_settings*', route => route.fulfill({ json: [
+    { profile: 'desktop', horizontal: 0, vertical: 0, zoom: 1, updated_at: '2026-10-08T00:00:00Z' },
+    { profile: 'mobile', horizontal: 0.16, vertical: 0.065, zoom: 1, updated_at: '2026-10-08T00:00:00Z' },
+  ] }));
   await page.route(/\/src\/crossy\/game\.js(?:\?|$)/, async route => {
     const response = await route.fetch();
     const body = (await response.text()).replace('const engine = new Engine();', 'const engine = new Engine(); window.__crossyQA = engine;');

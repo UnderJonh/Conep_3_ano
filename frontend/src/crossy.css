@@ -786,6 +786,100 @@ label input,label select {
   font-family:Retro,Arial,sans-serif;
   font-size:18px
 }
+.camera-control-panel {
+  position:absolute;
+  z-index:8;
+  top:max(88px,calc(env(safe-area-inset-top) + 16px));
+  left:max(18px,env(safe-area-inset-left));
+  width:min(350px,calc(100vw - 36px));
+  max-height:calc(100dvh - 112px);
+  overflow:auto;
+  padding:16px;
+  color:#263222;
+  background:#fffef3f2;
+  border:2px solid #334629;
+  border-radius:9px;
+  box-shadow:0 8px 0 #334629,0 16px 32px #1c2d2040;
+  backdrop-filter:blur(8px)
+}
+.camera-panel-heading {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px
+}
+.camera-panel-heading > div {
+  display:grid;
+  gap:5px
+}
+.camera-panel-heading > div > strong {
+  font-family:Retro,Arial,sans-serif;
+  font-size:15px
+}
+.camera-panel-heading button {
+  flex:0 0 auto;
+  width:34px;
+  height:32px;
+  padding:0;
+  font-size:23px;
+  line-height:1
+}
+.camera-sync-status {
+  color:#62715c;
+  font-size:12px;
+  font-weight:700
+}
+.camera-sync-status.is-synced { color:#467224 }
+.camera-sync-status.is-saving,.camera-sync-status.is-loading { color:#805c00 }
+.camera-sync-status.is-error { color:#a12c2c }
+.camera-profile-switch {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin:16px 0 12px
+}
+.camera-profile-switch button {
+  padding:8px 12px;
+  box-shadow:0 3px 0 #334629
+}
+.camera-profile-switch button[aria-pressed=true] { background:#b9e65e }
+.camera-slider {
+  margin:13px 0
+}
+.camera-slider > span {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px
+}
+.camera-slider output {
+  min-width:48px;
+  color:#42682d;
+  text-align:right
+}
+.camera-slider input {
+  display:block;
+  margin-top:5px
+}
+.camera-slider small {
+  display:block;
+  margin-top:3px;
+  color:#62715c;
+  font-size:11px;
+  font-weight:400
+}
+.camera-sync-error {
+  margin:10px 0;
+  color:#a12c2c;
+  font-size:12px;
+  line-height:1.4
+}
+.camera-reset {
+  width:100%;
+  margin-top:4px;
+  padding:9px 12px;
+  font-size:13px
+}
 @media(max-width:600px) {
   .home-overlay img {
   width:110vw;
@@ -890,6 +984,14 @@ label input,label select {
   border-top:1px solid #d9dfd0
 }
 .local-character-preview canvas { height:150px }
+.camera-control-panel {
+  top:max(8px,env(safe-area-inset-top));
+  left:max(8px,env(safe-area-inset-left));
+  right:max(8px,env(safe-area-inset-right));
+  width:auto;
+  max-height:calc(100dvh - 20px);
+  padding:13px
+}
 
 }
 

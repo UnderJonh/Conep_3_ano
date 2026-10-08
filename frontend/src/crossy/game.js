@@ -6,6 +6,7 @@ import { AmbientLight, DirectionalLight, OrthographicCamera, Scene, WebGLRendere
 import { disposeAudio, pauseGameAudio } from './audio';
 import { TweenMax } from 'gsap';
 import { startingRow } from '../../../Expo-Crossy-Road-master/src/GameSettings';
+import { defaultCameraSettings, normalizeCameraSettings } from '../lib/camera';
 
 let models;
 
@@ -13,9 +14,6 @@ const COMPACT_DESKTOP_MIN_WIDTH = 768;
 const COMPACT_DESKTOP_REFERENCE_HEIGHT = 850;
 const COMPACT_DESKTOP_MIN_CAMERA_SCALE = 0.8;
 const MOBILE_CAMERA_MAX_WIDTH = 700;
-const MOBILE_CAMERA_HORIZONTAL_OFFSET_RATIO = 0.16;
-const MOBILE_CAMERA_VERTICAL_OFFSET_RATIO = 0.065;
-const MOBILE_CAMERA_MAX_VERTICAL_OFFSET = 56;
 // Max visible half-width in world units. The terrain strips are 25 units wide
 // (-12.5 to 12.5) and the camera + world offset can shift up to ~4 units, so
 // 9.5 keeps a safe margin on every aspect ratio.
@@ -31,12 +29,22 @@ function cameraZoom(width, height, scale, viewportWidth = width) {
   return Math.max(baseZoom, minZoomForWidth);
 }
 
-function mobileCameraOffsets(width, height, scale, zoom, viewportWidth = width) {
-  // Split-screen multiplayer uses two almost-square views on a portrait phone;
-  // those already have the same framing as desktop and should stay unchanged.
-  if (viewportWidth >= MOBILE_CAMERA_MAX_WIDTH || height < width * 1.35) return { horizontal: 0, vertical: 0 };
-  const horizontalScreenOffset = width * MOBILE_CAMERA_HORIZONTAL_OFFSET_RATIO;
-  const verticalScreenOffset = Math.min(height * MOBILE_CAMERA_VERTICAL_OFFSET_RATIO, MOBILE_CAMERA_MAX_VERTICAL_OFFSET);
+function cameraTuning(settings, width, height, viewportWidth) {
+  const mobile = viewportWidth < MOBILE_CAMERA_MAX_WIDTH;
+  const tuning = settings[mobile ? 'mobile' : 'desktop'];
+  // Stacked multiplayer views are almost square. Keep their positional framing
+  // neutral while still allowing the mobile zoom to be tuned.
+  const usePositionOffsets = !mobile || height >= width * 1.35;
+  return {
+    horizontal: usePositionOffsets ? tuning.horizontal : 0,
+    vertical: usePositionOffsets ? tuning.vertical : 0,
+    zoom: tuning.zoom,
+  };
+}
+
+function cameraOffsets(width, height, scale, zoom, tuning) {
+  const horizontalScreenOffset = width * tuning.horizontal;
+  const verticalScreenOffset = height * tuning.vertical;
   // Orthographic bounds are applied before zoom, so convert the desired CSS
   // pixel shifts into camera-space units. Moving the frustum left centers the
   // isometric player; moving it up leaves more of the upcoming road visible.
@@ -46,9 +54,10 @@ function mobileCameraOffsets(width, height, scale, zoom, viewportWidth = width) 
   };
 }
 
-function configureCamera(camera, width, height, scale, viewportWidth = width) {
-  const zoom = cameraZoom(width, height, scale, viewportWidth);
-  const offset = mobileCameraOffsets(width, height, scale, zoom, viewportWidth);
+function configureCamera(camera, width, height, scale, viewportWidth = width, settings = defaultCameraSettings) {
+  const tuning = cameraTuning(settings, width, height, viewportWidth);
+  const zoom = cameraZoom(width, height, scale, viewportWidth) * tuning.zoom;
+  const offset = cameraOffsets(width, height, scale, zoom, tuning);
   camera.left = -(width * scale) - offset.horizontal;
   camera.right = (width * scale) - offset.horizontal;
   camera.top = (height * scale) + offset.vertical;
@@ -68,6 +77,7 @@ export async function createGame(canvas, callbacks, appearance = { character: 'c
   let paused = false;
   let disposed = false;
   let pending = 0;
+  let cameraSettings = normalizeCameraSettings(defaultCameraSettings);
   engine.onUpdateScore = callbacks.onScore;
   engine.onGameInit = () => callbacks.onScore(0);
   engine.onGameReady = () => {};
@@ -76,7 +86,7 @@ export async function createGame(canvas, callbacks, appearance = { character: 'c
   engine.setupGame(appearance.character);
   engine._hero.setColor(appearance.color);
   engine.camera.updateScale = dimensions => {
-    configureCamera(engine.camera, dimensions.width, dimensions.height, dimensions.scale);
+    configureCamera(engine.camera, dimensions.width, dimensions.height, dimensions.scale, dimensions.width, cameraSettings);
   };
   engine.init();
   await engine._onGLContextCreate(gl);
@@ -127,6 +137,12 @@ export async function createGame(canvas, callbacks, appearance = { character: 'c
       if (disposed) return;
       engine._hero.invincible = value;
     },
+    setCameraSettings(value) {
+      if (disposed) return;
+      cameraSettings = normalizeCameraSettings(value);
+      engine.updateScale();
+      engine.renderer.render(engine.scene, engine.camera);
+    },
     resize: engine.updateScale,
     dispose() {
       disposed = true; engine.pause(); engine._hero.stopIdle(); engine._hero.stopAnimations();
@@ -157,6 +173,7 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
   let paused = false;
   let disposed = false;
   let raf = 0;
+  let cameraSettings = normalizeCameraSettings(defaultCameraSettings);
 
   engine.setupGame(appearances[0].character);
   engine._hero.setColor(appearances[0].color);
@@ -219,7 +236,7 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
     const viewWidth = sideBySide ? width / 2 : width;
     const viewHeight = sideBySide ? height : height / 2;
     for (const camera of cameras) {
-      configureCamera(camera, viewWidth, viewHeight, scale, width);
+      configureCamera(camera, viewWidth, viewHeight, scale, width, cameraSettings);
     }
   }
 
@@ -326,6 +343,12 @@ export async function createLocalMultiplayerGame(canvas, callbacks, appearances)
       if (disposed) return;
       players.forEach(player => { player.invincible = value; });
       canvas.dataset.godMode = String(value);
+    },
+    setCameraSettings(value) {
+      if (disposed) return;
+      cameraSettings = normalizeCameraSettings(value);
+      resize();
+      renderViews();
     },
     resize,
     dispose() {

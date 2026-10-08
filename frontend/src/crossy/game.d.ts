@@ -1,6 +1,7 @@
 import type { Appearance } from '../lib/customization';
+import type { CameraSettings } from '../lib/camera';
 export type CharacterPreview = { setAppearance(value: Appearance): void; setCrowned(value: boolean): void; dispose(): void };
-export type GameController = CharacterPreview & { forward(): void; restart(): void; pause(value: boolean): void; resize(): void; setGodMode(value: boolean): void };
+export type GameController = CharacterPreview & { forward(): void; restart(): void; pause(value: boolean): void; resize(): void; setGodMode(value: boolean): void; setCameraSettings(value: CameraSettings): void };
 export type LocalMultiplayerController = Omit<GameController, 'forward' | 'setAppearance' | 'setCrowned'> & {
   forward(player: 1 | 2): void;
   setAppearance(value: Appearance, player: 1 | 2): void;
